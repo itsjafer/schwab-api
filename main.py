@@ -1,11 +1,21 @@
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
+from random_user_agent.user_agent import UserAgent
+from random_user_agent.params import SoftwareName, OperatingSystem, SoftwareType, Popularity, SoftwareEngine
+from dotenv import load_dotenv
 import json
+import random
+import os
 
 # Logs into Charles Schwab using a given username and password
 def login(page, username, password):
     # Go to https://www.schwab.com/public/schwab/nn/login/login.html?lang=en
-    page.goto("https://www.schwab.com/public/schwab/nn/login/login.html?lang=en")
+    with page.expect_navigation():
+        page.goto("https://www.schwab.com/public/schwab/nn/login/login.html?lang=en")
+    
+    page.wait_for_load_state('networkidle')
+
+    page.screenshot(path='waiting for login.png')
     # Fill input[name="LoginId"]
     page.frame(name="loginIframe").fill("input[name=\"LoginId\"]", "")
     # Click input[name="LoginId"]
@@ -93,14 +103,58 @@ def trade(page, side, ticker, qty, broker):
     page.wait_for_selector("text=Place Another Order", state='attached')
     page.screenshot(path=f"{side}-{ticker}-({qty})-account{broker}.png")
 
+def generate_user_agent():
+    software_types = [SoftwareType.WEB_BROWSER.value]
+    software_names = [SoftwareName.CHROME.value]
+    software_engines = [SoftwareEngine.BLINK.value]
+    operating_systems = [OperatingSystem.MAC.value, OperatingSystem.WINDOWS.value]   
+    popularity = [Popularity.POPULAR.value]
 
-def run(playwright):
-    user_data_dir = 'user_data_dir'
+    user_agent_rotator = UserAgent(
+        software_names=software_names, 
+        software_engines=software_engines, 
+        operating_systems=operating_systems,
+        software_types=software_types,
+        popularity=popularity,
+        limit=100
+    )
+
+    # Get list of user agents.
+    user_agents = user_agent_rotator.get_user_agents()
+
+    # Get Random User Agent String.
+    user_agent = user_agent_rotator.get_random_user_agent()
+
+    with open(".env", 'a') as f:  
+        f.write("\n")
+        f.write('{0}={1}\n'.format('SCHWAB_USER_AGENT', user_agent))
+
+def run(playwright, side, ticker, qty):
+    load_dotenv()
+
+    user_data_dir = os.getenv("SCHWAB_USER_DATA_DIR") or "user_data_dir"
+    num_accounts = os.getenv("SCHWAB_NUM_ACCOUNTS") or 1
+    username = os.getenv("SCHWAB_USERNAME")
+    password = os.getenv("SCHWAB_PASSWORD")
+
+    if not username or not password:
+        raise Exception("Username and Password must be set as environment variables")
+
+    # Check if we have a user agent set
+    if not os.getenv("SCHWAB_USER_AGENT"):
+        # Generating a user agent randomly and saving to .env
+        generate_user_agent()
+
+        # Reload env variables
+        load_dotenv()
+
+    user_agent = os.getenv("USER_AGENT")
+
     context = playwright.chromium.launch_persistent_context(
-        slow_mo=250, # We should consider randomizing this
+        slow_mo=random.randint(100,500),
         user_data_dir=user_data_dir, 
         headless=True,
-        user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.0 Safari/537.36',
+        user_agent=user_agent,
         viewport={ 'width': 1920, 'height': 1080 }
     )
 
@@ -108,21 +162,23 @@ def run(playwright):
     page = context.new_page()
     stealth_sync(page)
 
-    username = "username"
-    password = "password"
-
     # Log in to Schwab
     login(page, username, password)
+    print("Logged in")
 
     # Run two factor authentication if necessary
     if page.url != "https://client.schwab.com/clientapps/accounts/summary/":
         MFA(page)
+        print("Performing MFA")
 
-    num_accounts = 3
 
-    for account in range(1, num_accounts + 1):
+    for account in range(1, int(num_accounts) + 1):
+        print(f"Attempting to {side} {ticker} on account #{account}")
         # Make a trade
-        trade(page, "Buy", "VISL", 1, account)
+        trade(page, side, ticker.upper(), qty, account)
+
+        print(f"Successfully completed: {side} {ticker} on account #{account}")
+
 
     # ---------------------
     context.storage_state(path="auth.json")
@@ -130,4 +186,4 @@ def run(playwright):
     # browser.close()
 
 with sync_playwright() as playwright:
-    run(playwright)
+    run(playwright, "Buy", "VISL", 1)
