@@ -1,5 +1,7 @@
 # schwab-python
 
+![Screenshot](screenshot.png)
+
 **This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab.**
 
 This package enables buying and selling securities programmatically on Charles Schwab using Playwright. Essentially, this package uses headless Chromium to automate the clicks and inputs; it does NOT use web requests (though I'd love to change the code to do so).
