@@ -25,6 +25,7 @@ SCHWAB_USER_AGENT
 
 ## Todo
 
+* Export an actual function for modular use
 * Get this setup on a VM or a cloud function
 * Randomize and humanize every click and input interaction
 * Set up the repo as a package
