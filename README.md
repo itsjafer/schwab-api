@@ -40,7 +40,7 @@ api.login(screenshot=True)
 # Make a trade
 api.trade(
     ticker="ticker", 
-    side="Buy" ## or "Sell", 
+    side="Buy", ## or "Sell"
     qty=1,
     screenshot=False # for debugging turn this on
 )
