@@ -1,4 +1,4 @@
-# schwab-trader
+# schwab-python
 
 **This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab.**
 
