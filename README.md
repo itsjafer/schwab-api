@@ -57,6 +57,7 @@ There is currently no documentation. If there is traction or demand, I will slow
 
 ## Todo
 
+* Export an actual function for modular use
 * Get this setup on a VM or a cloud function
 * Randomize and humanize every click and input interaction
 
