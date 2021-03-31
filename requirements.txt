@@ -1,4 +1,0 @@
-playwright==1.10.0
-playwright-stealth==1.0.5
-random-user-agent==1.0.1
-python-dotenv==0.16.0

@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 user_data_dir
+auth.json
+Logged_in.png

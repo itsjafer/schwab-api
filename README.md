@@ -1,20 +1,52 @@
 # schwab-trader
 
-*This is a work in progress*
+**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab.**
 
-This is a basic python script that uses playwright to login to Charles Schwab and buy or sell a given ticker.
+This package enables buying and selling securities programmatically on Charles Schwab using Playwright. Essentially, this package uses headless Chromium to automate the clicks and inputs; it does NOT use web requests (though I'd love to change the code to do so).
 
-## Setup
+## Getting Started
 
-You must create a `.env` file or set the following variables:
+### Installing
+
+I plan to publish this to pypi soon. Until then, you're going to want to clone the repo and install like so:
 
 ```
-SCHWAB_USERNAME
-SCHWAB_PASSWORD
-SCHWAB_USER_DATA_DIR
-SCHWAB_NUM_ACCOUNTS
-SCHWAB_USER_AGENT
-`
+git clone https://github.com/itsjafer/schwab-python.git
+cd schwab-python
+pip install .
+python -m playwright install
+```
+
+### Quickstart
+
+Here's some code that logs in and makes a stock purchase:
+```
+from schwab import Schwab
+
+# Initialize our schwab instance
+# We can only have one instance running at a time
+api = Schwab.get_instance(
+    username=username,
+    password=password,
+    user_agent=user_agent
+)
+
+# Login
+# First-time setup: you will need to enter an SMS confirmation code as input
+api.login(screenshot=True)
+
+# Make a trade
+api.trade(
+    ticker="ticker", 
+    side="Buy" ## or "Sell", 
+    qty=1,
+    screenshot=False # for debugging turn this on
+)
+```
+
+## Documentation
+
+There is currently no documentation. If there is traction or demand, I will slowly add this in.
 
 ## Features
 
@@ -27,6 +59,4 @@ SCHWAB_USER_AGENT
 
 * Get this setup on a VM or a cloud function
 * Randomize and humanize every click and input interaction
-* Set up the repo as a package
-* Replace playwright with actual reverse engineered API calls
 

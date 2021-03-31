@@ -1,0 +1,2 @@
+schwab==0.0.1
+python-dotenv==0.16.0
