@@ -45,8 +45,9 @@ class Schwab:
 
     @staticmethod
     def get_instance(**kwargs):
-        """The TikTokApi class. Used to interact with TikTok. This is a singleton
-            class to prevent issues from arising with playwright
+        """The Schwab class. Used to interact with Charles Schwab. 
+            This is a singleton class to prevent issues from arising 
+            with playwright
         Parameters
         ----------
         username: Schwab username
