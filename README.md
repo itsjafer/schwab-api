@@ -6,6 +6,10 @@
 
 This package enables buying and selling securities programmatically on Charles Schwab using Playwright. Essentially, this package uses headless Chromium to automate the clicks and inputs; it does NOT use web requests (though I'd love to change the code to do so).
 
+## Contribution
+
+I would absolutely love contributions; as someone new to open source, I'd appreciate help in setting up a reliable system for PRs as well :)
+
 ## Getting Started
 
 ### Installing
