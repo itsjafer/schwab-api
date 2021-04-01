@@ -10,12 +10,10 @@ This package enables buying and selling securities programmatically on Charles S
 
 ### Installing
 
-I plan to publish this to pypi soon. Until then, you're going to want to clone the repo and install like so:
+Install using pypi and then download and install the playwright binaries:
 
 ```
-git clone https://github.com/itsjafer/schwab-python.git
-cd schwab-python
-pip install .
+pip install schwab-api
 python -m playwright install
 ```
 
