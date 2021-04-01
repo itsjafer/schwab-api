@@ -40,7 +40,7 @@ api.login(screenshot=True)
 # Make a trade
 api.trade(
     ticker="ticker", 
-    side="Buy" ## or "Sell", 
+    side="Buy", ## or "Sell"
     qty=1,
     screenshot=False # for debugging turn this on
 )
@@ -59,7 +59,10 @@ There is currently no documentation. If there is traction or demand, I will slow
 
 ## Todo
 
-* Export an actual function for modular use
+* Other functions beyond just trading
+  * Account information
+  * Position information
+  * More advanced trading functions
 * Get this setup on a VM or a cloud function
 * Randomize and humanize every click and input interaction
 
