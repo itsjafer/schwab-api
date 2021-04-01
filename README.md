@@ -1,4 +1,4 @@
-# schwab-python
+# Schwab API
 
 ![Screenshot](screenshot.png)
 
@@ -23,7 +23,7 @@ python -m playwright install
 
 Here's some code that logs in and makes a stock purchase:
 ```
-from schwab import Schwab
+from schwab_api import Schwab
 
 # Initialize our schwab instance
 # We can only have one instance running at a time

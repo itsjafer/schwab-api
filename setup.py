@@ -6,17 +6,17 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="schwab",
-    packages=["schwab"],
+    name="schwab_api",
+    packages=setuptools.find_packages(),
     version="0.0.1",
     license="MIT",
     description="Unofficial Schwab API wrapper in Python 3.",
     author="Jafer Haider",
     author_email="itsjafer@gmail.com",
-    url="https://github.com/itsjafer/schwab-python",
+    url="https://github.com/itsjafer/schwab-api",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    download_url="https://github.com/itsjafer/schwab-python/tarball/master",
+    download_url="https://github.com/itsjafer/schwab-api/tarball/master",
     keywords=["schwab", "python3", "api", "unofficial", "schwab-api", "schwab charles api"],
     install_requires=["playwright", "playwright-stealth"],
     classifiers=[
