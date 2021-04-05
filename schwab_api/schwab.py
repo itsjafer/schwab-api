@@ -113,7 +113,7 @@ class Schwab:
 
         # Run two factor authentication if necessary
         if self.page.url != "https://client.schwab.com/clientapps/accounts/summary/":
-            first_time_setup(screenshot=screenshot)
+            self.first_time_setup(screenshot=screenshot)
         if screenshot:
             self.page.screenshot(path="Logged_in.png")
 
