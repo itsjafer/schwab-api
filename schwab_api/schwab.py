@@ -93,18 +93,18 @@ class Schwab:
         
         self.page.wait_for_load_state('networkidle')
         # Fill input[name="LoginId"]
-        self.page.frame(name="loginIframe").fill("input[name=\"LoginId\"]", "")
+        self.page.frame(name="lmsSecondaryLogin").fill("input[name=\"LoginId\"]", "")
         # Click input[name="LoginId"]
-        self.page.frame(name="loginIframe").click("input[name=\"LoginId\"]")
+        self.page.frame(name="lmsSecondaryLogin").click("input[name=\"LoginId\"]")
         # Fill input[name="LoginId"]
-        self.page.frame(name="loginIframe").fill("input[name=\"LoginId\"]", self.username)
+        self.page.frame(name="lmsSecondaryLogin").fill("input[name=\"LoginId\"]", self.username)
         # Press Tab
-        self.page.frame(name="loginIframe").press("input[name=\"LoginId\"]", "Tab")
+        self.page.frame(name="lmsSecondaryLogin").press("input[name=\"LoginId\"]", "Tab")
         # Fill input[role="textbox"]
-        self.page.frame(name="loginIframe").fill("input[role=\"textbox\"]", self.password)
+        self.page.frame(name="lmsSecondaryLogin").fill("input[role=\"textbox\"]", self.password)
         # Press Enter
         with self.page.expect_navigation():
-            self.page.frame(name="loginIframe").press("input[role=\"textbox\"]", "Enter")
+            self.page.frame(name="lmsSecondaryLogin").press("input[role=\"textbox\"]", "Enter")
 
         self.page.wait_for_load_state('networkidle')
         self.context.storage_state(path="auth.json")
