@@ -25,6 +25,7 @@ class Schwab:
         self.password = kwargs.get("password", None)
         self.user_agent = kwargs.get("user_agent", None)
         self.user_data_dir = kwargs.get("user_data_dir", "user_data_dir")
+        self.headless = kwargs.get("headless", False)
 
         if self.username is None or self.password is None or self.user_agent is None:
             raise Exception("Schwab expects the following constructor variables: `username`, `password`, `user_agent`")
@@ -34,7 +35,7 @@ class Schwab:
         self.context = self.playwright.chromium.launch_persistent_context(
             slow_mo=random.randint(100,500),
             user_data_dir=self.user_data_dir, 
-            headless=True,
+            headless=self.headless,
             user_agent=self.user_agent,
             viewport={ 'width': 1920, 'height': 1080 }
         )
