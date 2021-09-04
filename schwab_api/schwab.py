@@ -90,28 +90,26 @@ class Schwab:
         """
 
         print("Attempting to login")
-        # Go to https://www.schwab.com/public/schwab/nn/login/login.html?lang=en
+        # Go to https://www.schwab.com/
         with self.page.expect_navigation():
-            self.page.goto("https://www.schwab.com/public/schwab/nn/login/login.html?lang=en")
-        
-        self.page.wait_for_load_state('networkidle')
-        if screenshot:
-            self.page.screenshot(path="Logging_in.png")
+            self.page.goto("https://www.schwab.com/")
 
-        self.page.wait_for_timeout(5000)
-        self.page.frame(name="lmsSecondaryLogin").wait_for_load_state('networkidle')
+        self.page.wait_for_load_state('networkidle')
+
+        self.page.wait_for_selector("#lms-home")
         # Click [placeholder="Login ID"]
-        self.page.frame(name="lmsSecondaryLogin").click("#loginIdInput")
+        self.page.frame(name="lms-home").click("[placeholder=\"Login ID\"]")
         # Fill [placeholder="Login ID"]
-        self.page.frame(name="lmsSecondaryLogin").fill("#loginIdInput", self.username)
+        self.page.frame(name="lms-home").fill("[placeholder=\"Login ID\"]", self.username)
         # Press Tab
-        self.page.frame(name="lmsSecondaryLogin").press("#loginIdInput", "Tab")
-        # Click [placeholder="Password"]
-        self.page.frame(name="lmsSecondaryLogin").click("#passwordInput")
+        self.page.frame(name="lms-home").press("[placeholder=\"Login ID\"]", "Tab")
         # Fill [placeholder="Password"]
-        self.page.frame(name="lmsSecondaryLogin").fill("#passwordInput", self.password)
-        # Click [aria-label="Log in"]
-        self.page.frame(name="lmsSecondaryLogin").click("#btnLogin")
+        self.page.frame(name="lms-home").fill("[placeholder=\"Password\"]", self.password)
+        # Press Enter
+        # with page.expect_navigation(url="https://sws-gateway.schwab.com/ui/host/#/placeholder"):
+        with self.page.expect_navigation():
+            self.page.frame(name="lms-home").press("[placeholder=\"Password\"]", "Enter")
+
 
         self.page.wait_for_load_state('networkidle')
         self.context.storage_state(path="auth.json")
