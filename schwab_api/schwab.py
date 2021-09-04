@@ -37,7 +37,7 @@ class Schwab:
             user_data_dir=self.user_data_dir, 
             headless=self.headless,
             user_agent=self.user_agent,
-            viewport={ 'width': 1920, 'height': 1080 }
+            viewport={ 'width': 3840, 'height': 2160 }
         )
 
         # Open new page
@@ -93,22 +93,27 @@ class Schwab:
             self.page.goto("https://www.schwab.com/public/schwab/nn/login/login.html?lang=en")
         
         self.page.wait_for_load_state('networkidle')
-        # Fill input[name="LoginId"]
-        self.page.frame(name="lmsSecondaryLogin").fill("input[name=\"LoginId\"]", "")
-        # Click input[name="LoginId"]
-        self.page.frame(name="lmsSecondaryLogin").click("input[name=\"LoginId\"]")
-        # Fill input[name="LoginId"]
-        self.page.frame(name="lmsSecondaryLogin").fill("input[name=\"LoginId\"]", self.username)
+        if screenshot:
+            self.page.screenshot(path="Logging_in.png")
+
+        # Click [placeholder="Login ID"]
+        self.page.frame(name="lmsSecondaryLogin").click("#loginIdInput")
+        # Fill [placeholder="Login ID"]
+        self.page.frame(name="lmsSecondaryLogin").fill("#loginIdInput", self.username)
         # Press Tab
-        self.page.frame(name="lmsSecondaryLogin").press("input[name=\"LoginId\"]", "Tab")
-        # Fill input[role="textbox"]
-        self.page.frame(name="lmsSecondaryLogin").fill("input[role=\"textbox\"]", self.password)
-        # Press Enter
-        with self.page.expect_navigation():
-            self.page.frame(name="lmsSecondaryLogin").press("input[role=\"textbox\"]", "Enter")
+        self.page.frame(name="lmsSecondaryLogin").press("#loginIdInput", "Tab")
+        # Click [placeholder="Password"]
+        self.page.frame(name="lmsSecondaryLogin").click("#passwordInput")
+        # Fill [placeholder="Password"]
+        self.page.frame(name="lmsSecondaryLogin").fill("#passwordInput", self.password)
+        # Click [aria-label="Log in"]
+        self.page.frame(name="lmsSecondaryLogin").click("#btnLogin")
 
         self.page.wait_for_load_state('networkidle')
         self.context.storage_state(path="auth.json")
+
+        if screenshot:
+            self.page.screenshot(path="Filled_in.png")
         print("Login info accepted successfully")
 
 
@@ -117,6 +122,7 @@ class Schwab:
             self.first_time_setup(screenshot=screenshot)
         if screenshot:
             self.page.screenshot(path="Logged_in.png")
+
 
 
     def first_time_setup(self, screenshot=False):
@@ -134,32 +140,53 @@ class Schwab:
         self.page.wait_for_load_state('networkidle')
         if screenshot:
             self.page.screenshot(path="MFA.png")
-        # Fill input[name="DeliveryMethodSelection"]
-        self.page.click("input[name=\"DeliveryMethodSelection\"]")
-        # Click text=Text Message
-        self.page.click("text=Text Message")
-        # Click input:has-text("Continue")
-        self.page.click("input:has-text(\"Continue\")")
-
-        print("You should receive a code on your phone number soon")
-        # assert page.url == "https://lms.schwab.com/Sua/DeviceTag/AccessCodeEntry?clientId=schwab-prospect&suaType=DeviceTag&selectedId=1&deliveryMethod=Sms&redirectUrl=https%3A%2F%2Fclient.schwab.com%2Flogin%2Fsignon%2Fauthcodehandler.ashx"
-        # Check input[name="TrustDeviceChecked"]
-        self.page.check("input[name=\"TrustDeviceChecked\"]")
-        # Click [placeholder="Access Code"]
-        self.page.click("[placeholder=\"Access Code\"]")
-        # Fill [placeholder="Access Code"]
-        self.page.fill("[placeholder=\"Access Code\"]", input("Please enter your security code: "))
         
-        if screenshot:
-            self.page.screenshot(path="MFA_entered.png")
+        try:
+            # Click [aria-label="Text me a 6 digit security code"]
+            # with page.expect_navigation(url="https://sws-gateway.schwab.com/ui/host/#/otp/code"):
+            with page.expect_navigation():
+                page.click("[aria-label=\"Text me a 6 digit security code\"]")
+                print("You should receive a code on your phone number soon")
 
-        # Click text=Continue
-        self.page.click("text=Continue")
-        # assert page.url == "https://lms.schwab.com/Sua/DeviceTag/Success?clientId=schwab-prospect&redirectUrl=%2FLogin%2FResultDeviceTag%3FclientId%3Dschwab-prospect%26trustedDevice%3Dtrue%26redirectUri%3Dhttps%253A%252F%252Fclient.schwab.com%252Flogin%252Fsignon%252Fauthcodehandler.ashx&suaType=DeviceTag&trusted=True"
-        # Click text=Continue
-        # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
-        with self.page.expect_navigation():
+            # assert page.url == "https://sws-gateway.schwab.com/ui/host/#/"
+            # Click input[type="text"]
+            page.click("input[type=\"text\"]")
+            # Fill input[type="text"]
+            page.fill("input[type=\"text\"]", input("Please enter your security code: "))
+            # Click text=Trust this device and skip this step in the future.
+            page.click("text=Trust this device and skip this step in the future.")
+            # Click text=Log In
+            # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
+            with page.expect_navigation():
+                page.click("text=Log In")
+        except:
+            # Fill input[name="DeliveryMethodSelection"]
+            self.page.click("input[name=\"DeliveryMethodSelection\"]")
+            # Click text=Text Message
+            self.page.click("text=Text Message")
+            # Click input:has-text("Continue")
+            self.page.click("input:has-text(\"Continue\")")
+
+            print("You should receive a code on your phone number soon")
+            # assert page.url == "https://lms.schwab.com/Sua/DeviceTag/AccessCodeEntry?clientId=schwab-prospect&suaType=DeviceTag&selectedId=1&deliveryMethod=Sms&redirectUrl=https%3A%2F%2Fclient.schwab.com%2Flogin%2Fsignon%2Fauthcodehandler.ashx"
+            # Check input[name="TrustDeviceChecked"]
+            self.page.check("input[name=\"TrustDeviceChecked\"]")
+            # Click [placeholder="Access Code"]
+            self.page.click("[placeholder=\"Access Code\"]")
+            # Fill [placeholder="Access Code"]
+            self.page.fill("[placeholder=\"Access Code\"]", input("Please enter your security code: "))
+            
+            if screenshot:
+                self.page.screenshot(path="MFA_entered.png")
+
+            # Click text=Continue
             self.page.click("text=Continue")
+            # assert page.url == "https://lms.schwab.com/Sua/DeviceTag/Success?clientId=schwab-prospect&redirectUrl=%2FLogin%2FResultDeviceTag%3FclientId%3Dschwab-prospect%26trustedDevice%3Dtrue%26redirectUri%3Dhttps%253A%252F%252Fclient.schwab.com%252Flogin%252Fsignon%252Fauthcodehandler.ashx&suaType=DeviceTag&trusted=True"
+            # Click text=Continue
+            # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
+            with self.page.expect_navigation():
+                self.page.click("text=Continue")
+                
         assert self.page.url == "https://client.schwab.com/clientapps/accounts/summary/"
         print("We should now be logged in")
 

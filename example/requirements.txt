@@ -1,2 +1,2 @@
-schwab==0.0.1
+schwab_api
 python-dotenv==0.16.0
