@@ -37,7 +37,7 @@ class Schwab:
             user_data_dir=self.user_data_dir, 
             headless=self.headless,
             user_agent=self.user_agent,
-            viewport={ 'width': 3840, 'height': 2160 }
+            viewport={ 'width': 1920, 'height': 1080 }
         )
 
         # Open new page
@@ -144,21 +144,21 @@ class Schwab:
         try:
             # Click [aria-label="Text me a 6 digit security code"]
             # with page.expect_navigation(url="https://sws-gateway.schwab.com/ui/host/#/otp/code"):
-            with page.expect_navigation():
-                page.click("[aria-label=\"Text me a 6 digit security code\"]")
+            with self.page.expect_navigation():
+                self.page.click("[aria-label=\"Text me a 6 digit security code\"]")
                 print("You should receive a code on your phone number soon")
 
             # assert page.url == "https://sws-gateway.schwab.com/ui/host/#/"
             # Click input[type="text"]
-            page.click("input[type=\"text\"]")
+            self.page.click("input[type=\"text\"]")
             # Fill input[type="text"]
-            page.fill("input[type=\"text\"]", input("Please enter your security code: "))
+            self.page.fill("input[type=\"text\"]", input("Please enter your security code: "))
             # Click text=Trust this device and skip this step in the future.
-            page.click("text=Trust this device and skip this step in the future.")
+            self.page.click("text=Trust this device and skip this step in the future.")
             # Click text=Log In
             # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
-            with page.expect_navigation():
-                page.click("text=Log In")
+            with self.page.expect_navigation():
+                self.page.click("text=Log In")
         except:
             # Fill input[name="DeliveryMethodSelection"]
             self.page.click("input[name=\"DeliveryMethodSelection\"]")
