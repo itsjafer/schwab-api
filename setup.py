@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="schwab_api",
     packages=setuptools.find_packages(),
-    version="0.0.7",
+    version="0.0.8",
     license="MIT",
     description="Unofficial Schwab API wrapper in Python 3.",
     author="Jafer Haider",

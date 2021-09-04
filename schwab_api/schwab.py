@@ -3,6 +3,7 @@ from playwright_stealth import stealth_sync
 import json
 import random
 import os
+import pyotp
 
 class Schwab:
     __instance = None
@@ -26,6 +27,7 @@ class Schwab:
         self.user_agent = kwargs.get("user_agent", None)
         self.user_data_dir = kwargs.get("user_data_dir", "user_data_dir")
         self.headless = kwargs.get("headless", False)
+        self.totp = kwargs.get("totp", None)
 
         if self.username is None or self.password is None or self.user_agent is None:
             raise Exception("Schwab expects the following constructor variables: `username`, `password`, `user_agent`")
@@ -96,6 +98,8 @@ class Schwab:
         if screenshot:
             self.page.screenshot(path="Logging_in.png")
 
+        self.page.wait_for_timeout(5000)
+        self.page.frame(name="lmsSecondaryLogin").wait_for_load_state('networkidle')
         # Click [placeholder="Login ID"]
         self.page.frame(name="lmsSecondaryLogin").click("#loginIdInput")
         # Fill [placeholder="Login ID"]
@@ -140,6 +144,22 @@ class Schwab:
         self.page.wait_for_load_state('networkidle')
         if screenshot:
             self.page.screenshot(path="MFA.png")
+
+        if self.totp is not None:
+            totp = pyotp.TOTP(self.totp)
+            print(totp.now())
+            # self.page.pause()
+            self.page.click("#placeholderCode")
+            # Fill [aria-label="Enter a 6 digit numeric value."]
+            self.page.fill("#placeholderCode", str(totp.now()))
+            # Click text=Continue
+            # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
+            with self.page.expect_navigation():
+                self.page.click("#continueButton")
+            assert self.page.url == "https://client.schwab.com/clientapps/accounts/summary/"
+            print("We should now be logged in")
+            return
+
         
         try:
             # Click [aria-label="Text me a 6 digit security code"]
