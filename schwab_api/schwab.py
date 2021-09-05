@@ -94,28 +94,42 @@ class Schwab:
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
 
-        self.page.wait_for_load_state('networkidle')
+        self.page.wait_for_load_state('domcontentloaded')
+        if screenshot:
+            self.page.screenshot(path="Logging_in.png")
 
-        self.page.wait_for_selector("#lms-home")
+        selector = "schwablmslogin"
+        try:
+            self.page.wait_for_selector("#" + selector)
+        except:
+            selector = "lms-home"
+
         # Click [placeholder="Login ID"]
-        self.page.frame(name="lms-home").click("[placeholder=\"Login ID\"]")
+        self.page.frame(name=selector).click("[placeholder=\"Login ID\"]")
         # Fill [placeholder="Login ID"]
-        self.page.frame(name="lms-home").fill("[placeholder=\"Login ID\"]", self.username)
+        self.page.frame(name=selector).fill("[placeholder=\"Login ID\"]", self.username)
         # Press Tab
-        self.page.frame(name="lms-home").press("[placeholder=\"Login ID\"]", "Tab")
+        self.page.frame(name=selector).press("[placeholder=\"Login ID\"]", "Tab")
         # Fill [placeholder="Password"]
-        self.page.frame(name="lms-home").fill("[placeholder=\"Password\"]", self.password)
+        self.page.frame(name=selector).fill("[placeholder=\"Password\"]", self.password)
+
+        if screenshot:
+            self.page.screenshot(path="Filled_in.png")
+
         # Press Enter
         # with page.expect_navigation(url="https://sws-gateway.schwab.com/ui/host/#/placeholder"):
-        with self.page.expect_navigation():
-            self.page.frame(name="lms-home").press("[placeholder=\"Password\"]", "Enter")
+        try:
+            with self.page.expect_navigation():
+                self.page.frame(name=selector).press("[placeholder=\"Password\"]", "Enter")
+                if screenshot:
+                    self.page.screenshot(path="clicked_enter.png")
+        except:
+            self.page.screenshot(path="error.png")
 
 
         self.page.wait_for_load_state('networkidle')
         self.context.storage_state(path="auth.json")
 
-        if screenshot:
-            self.page.screenshot(path="Filled_in.png")
         print("Login info accepted successfully")
 
 
