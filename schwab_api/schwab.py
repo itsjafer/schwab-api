@@ -160,14 +160,14 @@ class Schwab:
         if self.totp is not None:
             totp = pyotp.TOTP(self.totp)
             print(totp.now())
-            # self.page.pause()
-            self.page.click("#placeholderCode")
-            # Fill [aria-label="Enter a 6 digit numeric value."]
-            self.page.fill("#placeholderCode", str(totp.now()))
-            # Click text=Continue
-            # with page.expect_navigation(url="https://client.schwab.com/clientapps/accounts/summary/"):
+            # Click input[type="number"]
+            self.page.click("input[type=\"number\"]")
+            # Fill input[type="number"]
+            self.page.fill("input[type=\"number\"]", str(totp.now()))
+            # Press Enter
             with self.page.expect_navigation():
-                self.page.click("#continueButton")
+                self.page.press("input[type=\"number\"]", "Enter")
+
             assert self.page.url == "https://client.schwab.com/clientapps/accounts/summary/"
             print("We should now be logged in")
             return
