@@ -130,4 +130,4 @@ dmypy.json
 
 user_data_dir
 auth.json
-Logged_in.png
+*.png
