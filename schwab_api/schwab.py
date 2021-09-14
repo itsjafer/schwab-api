@@ -24,7 +24,7 @@ class Schwab:
 
         self.username = kwargs.get("username", None)
         self.password = kwargs.get("password", None)
-        self.user_agent = kwargs.get("user_agent", None)
+        self.user_agent = kwargs.get("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
         self.user_data_dir = kwargs.get("user_data_dir", "user_data_dir")
         self.headless = kwargs.get("headless", False)
         self.totp = kwargs.get("totp", None)
@@ -276,7 +276,10 @@ class Schwab:
         # Click #btn-place-order
         self.page.click("#btn-place-order")
 
+        try:
         self.page.wait_for_selector("text=Place Another Order", state='attached')
+        except:
+            print("Could not find place another order button?")
 
         print("Looks like we have successfully completed our trade!")
         if screenshot:

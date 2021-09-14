@@ -6,6 +6,11 @@
 
 This package enables buying and selling securities programmatically on Charles Schwab using Playwright. Essentially, this package uses headless Chromium to automate the clicks and inputs; it does NOT use web requests (though I'd love to change the code to do so).
 
+
+## Live Demo
+
+I am currently using this API to place trades on Schwab using my website [here](https://itsjafer.com/#/reversesplit)
+
 ## Contribution
 
 I would absolutely love contributions; as someone new to open source, I'd appreciate help in setting up a reliable system for PRs as well :)
@@ -30,10 +35,12 @@ from schwab_api import Schwab
 # Initialize our schwab instance
 # We can only have one instance running at a time
 api = Schwab.get_instance(
-    username=username,
-    password=password,
-    user_agent=user_agent
+    username="username",
+    password="password",
 )
+
+# If you know your TOTP secret, you pass that into the `totp` parameter in get_instance
+# How to get TOTP: https://www.reddit.com/r/personalfinance/comments/hvvuwl/using_google_auth_or_your_totp_app_of_choice_for/ 
 
 # Login
 # First-time setup: you will need to enter an SMS confirmation code as input
@@ -64,6 +71,5 @@ There is currently no documentation. If there is traction or demand, I will slow
   * Account information
   * Position information
   * More advanced trading functions
-* Get this setup on a VM or a cloud function
 * Randomize and humanize every click and input interaction
 
