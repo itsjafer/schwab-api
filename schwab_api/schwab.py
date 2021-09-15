@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
 from .account_information import Position, Account
+from .utils import usernamePayload
 import json
 import pyotp
 import requests
@@ -86,7 +87,6 @@ class Schwab:
         self.playwright = sync_playwright().start()
         self.browser = self.playwright.firefox.launch(
             headless=self.headless,
-            slow_mo=100
         )
         self.page = self.browser.new_page(
             user_agent=self.user_agent,
@@ -112,6 +112,12 @@ class Schwab:
         self.page.frame(name=selector).click("[placeholder=\"Login ID\"]")
         # Fill [placeholder="Login ID"]
         self.page.frame(name=selector).fill("[placeholder=\"Login ID\"]", self.username)
+        
+        if self.totp is not None:
+            totp = pyotp.TOTP(self.totp)
+            print(totp.now())
+            self.password += str(totp.now())
+
         # Press Tab
         self.page.frame(name=selector).press("[placeholder=\"Login ID\"]", "Tab")
         # Fill [placeholder="Password"]
@@ -256,7 +262,7 @@ class Schwab:
                             int(position["Quantity"]),
                             float(position["Cost"]),
                             float(position["MarketValue"])
-                        )
+                        )._as_dict()
                     )
             account_info[int(account["AccountId"])] = Account(
                 account["AccountId"],
@@ -265,7 +271,7 @@ class Schwab:
                 account["Totals"]["CashInvestments"],
                 account["Totals"]["AccountValue"],
                 account["Totals"]["Cost"],
-            )
+            )._as_dict()
 
         return account_info
 
@@ -274,7 +280,7 @@ class Schwab:
             ticker (Str) - The symbol you want to trade,
             side (str) - Either 'Buy' or 'Sell',
             qty (int) - The amount of shares to buy/sell,
-            account_id - The account ID to place the trade on. If the ID is XXXX-XXXX, 
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
                          we're looking for just XXXXXXXX.
 
             Returns messages (list of strings), is_success (boolean)
