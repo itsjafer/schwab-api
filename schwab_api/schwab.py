@@ -302,6 +302,7 @@ class Schwab:
             "CostBasis":"FIFO",
             }
 
+        print(f"Verifying order to {side} {qty} shares of {ticker} on account {account_id}")
         r = self.session.post("https://client.schwab.com/api/ts/stamp/verifyOrder", data)
 
         if r.status_code != 200:
@@ -338,6 +339,7 @@ class Schwab:
             "Timing": "Day Only"
         }
 
+        print(f"Placing order to {side} {qty} shares of {ticker} on account {account_id}")
         r = self.session.post("https://client.schwab.com/api/ts/stamp/confirmorder", data)
 
         if r.status_code != 200:
