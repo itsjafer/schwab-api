@@ -1,9 +1,12 @@
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
+from .account_information import Position, Account
 import json
-import random
-import os
 import pyotp
+import requests
+import urllib
+
+from requests.cookies import cookiejar_from_dict
 
 class Schwab:
     __instance = None
@@ -28,22 +31,21 @@ class Schwab:
         self.user_data_dir = kwargs.get("user_data_dir", "user_data_dir")
         self.headless = kwargs.get("headless", False)
         self.totp = kwargs.get("totp", None)
+        self.session = requests.Session()
 
         if self.username is None or self.password is None or self.user_agent is None:
             raise Exception("Schwab expects the following constructor variables: `username`, `password`, `user_agent`")
 
         self.playwright = sync_playwright().start()
-
-        self.context = self.playwright.chromium.launch_persistent_context(
-            slow_mo=random.randint(100,500),
-            user_data_dir=self.user_data_dir, 
+        self.browser = self.playwright.firefox.launch(
             headless=self.headless,
+            slow_mo=100
+        )
+        self.page = self.browser.new_page(
             user_agent=self.user_agent,
             viewport={ 'width': 1920, 'height': 1080 }
         )
 
-        # Open new page
-        self.page = self.context.new_page()
         stealth_sync(self.page)
 
     @staticmethod
@@ -70,14 +72,17 @@ class Schwab:
 
     def __del__(self):
         try:
-            self.context.close()
+            self.page.close()
+        except:
+            pass
+        try:
+            self.browser.close()
         except:
             pass
         try:
             self.playwright.stop()
         except:
             pass
-
 
     def login(self, screenshot=False):
         """
@@ -94,7 +99,7 @@ class Schwab:
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
 
-        self.page.wait_for_load_state('domcontentloaded')
+        self.page.wait_for_load_state('networkidle')
         if screenshot:
             self.page.screenshot(path="Logging_in.png")
 
@@ -125,10 +130,11 @@ class Schwab:
                     self.page.screenshot(path="clicked_enter.png")
         except:
             self.page.screenshot(path="error.png")
+            print("Unable to log in")
+            raise Exception("Unable to login")
 
 
         self.page.wait_for_load_state('networkidle')
-        self.context.storage_state(path="auth.json")
 
         print("Login info accepted successfully")
 
@@ -136,9 +142,13 @@ class Schwab:
         # Run two factor authentication if necessary
         if self.page.url != "https://client.schwab.com/clientapps/accounts/summary/":
             self.first_time_setup(screenshot=screenshot)
+        else: 
+            cookies = {cookie["name"]: cookie["value"] for cookie in self.page.context.cookies()}
+            self.session.cookies = cookiejar_from_dict(cookies)
         if screenshot:
             self.page.screenshot(path="Logged_in.png")
-
+        self.browser.close()
+        self.playwright.stop()
 
 
     def first_time_setup(self, screenshot=False):
@@ -170,9 +180,11 @@ class Schwab:
 
             assert self.page.url == "https://client.schwab.com/clientapps/accounts/summary/"
             print("We should now be logged in")
+            self.page.wait_for_load_state('networkidle')
+            cookies = {cookie["name"]: cookie["value"] for cookie in self.page.context.cookies()}
+            self.session.cookies = cookiejar_from_dict(cookies)
             return
 
-        
         try:
             # Click [aria-label="Text me a 6 digit security code"]
             # with page.expect_navigation(url="https://sws-gateway.schwab.com/ui/host/#/otp/code"):
@@ -221,8 +233,127 @@ class Schwab:
                 
         assert self.page.url == "https://client.schwab.com/clientapps/accounts/summary/"
         print("We should now be logged in")
+        cookies = {cookie["name"]: cookie["value"] for cookie in self.page.context.cookies()}
+        self.session.cookies = cookiejar_from_dict(cookies)
 
-    def trade(self, ticker, side, qty, account_index=0, screenshot=False):
+
+    def get_account_info(self):
+        """
+            Returns a dictionary of Account objects where the key is the account number
+        """
+        
+        account_info = dict()
+        r = self.session.get("https://client.schwab.com/api/PositionV2/PositionsDataV2")
+        response = json.loads(r.text)
+        for account in response['Accounts']:
+            positions = list()
+            for security_group in account["SecurityGroupings"]:
+                for position in security_group["Positions"]:
+                    positions.append(
+                        Position(
+                            position["DefaultSymbol"],
+                            position["Description"],
+                            int(position["Quantity"]),
+                            float(position["Cost"]),
+                            float(position["MarketValue"])
+                        )
+                    )
+            account_info[int(account["AccountId"])] = Account(
+                account["AccountId"],
+                positions,
+                account["Totals"]["MarketValue"],
+                account["Totals"]["CashInvestments"],
+                account["Totals"]["AccountValue"],
+                account["Totals"]["Cost"],
+            )
+
+        return account_info
+
+    def trade(self, ticker, side, qty, account_id, dry_run=True):
+        """
+            ticker (Str) - The symbol you want to trade,
+            side (str) - Either 'Buy' or 'Sell',
+            qty (int) - The amount of shares to buy/sell,
+            account_id - The account ID to place the trade on. If the ID is XXXX-XXXX, 
+                         we're looking for just XXXXXXXX.
+
+            Returns messages (list of strings), is_success (boolean)
+        """
+
+        if side == "Buy":
+            buySellCode = 1
+        elif side == "Sell":
+            buySellCode = 2
+        else:
+            print("side must be either Buy or Sell")
+            return [], False
+
+        data = {
+            "IsMinQty":False,
+            "CustomerId":str(account_id),
+            "BuySellCode":buySellCode,
+            "Quantity":str(qty),
+            "IsReinvestDividends":False,
+            "SecurityId":ticker,
+            "TimeInForce":"1", # Day Only
+            "OrderType":1, # Market Order
+            "CblMethod":"FIFO",
+            "CblDefault":"FIFO",
+            "CostBasis":"FIFO",
+            }
+
+        r = self.session.post("https://client.schwab.com/api/ts/stamp/verifyOrder", data)
+
+        if r.status_code != 200:
+            print("Recieved invalid status code from order verification")
+            print(r.text)
+            return [r.text], False
+        
+        response = json.loads(r.text)
+
+        messages = list()
+        for message in response["Messages"]:
+            messages.append(message["Message"])
+
+        if dry_run:
+            print("Returning verification messages, order not placed.")
+            return messages, True
+
+        data = {
+            "AccountId": str(account_id),
+            "ActionType": side,
+            "ActionTypeText": side,
+            "BuyAction": side == "Buy",
+            "CostBasis": "FIFO",
+            "CostBasisMethod": "FIFO",
+            "IsMarketHours": True,
+            "ItemIssueId": int(response['IssueId']),
+            "NetAmount": response['NetAmount'],
+            "OrderId": int(response["Id"]),
+            "OrderType": "Market",
+            "Principal": response['QuoteAmount'],
+            "Quantity": str(qty),
+            "ShortDescription": urllib.parse.quote_plus(response['IssueShortDescription']),
+            "Symbol": response["IssueSymbol"],
+            "Timing": "Day Only"
+        }
+
+        r = self.session.post("https://client.schwab.com/api/ts/stamp/confirmorder", data)
+
+        if r.status_code != 200:
+            print("Received invalid status code from order confirmation")
+            messages.append(r.text)
+            return messages, False
+
+        response = json.loads(r.text)
+        if response["ReturnCode"] == 0:
+            print("Successfully placed trade")
+            return messages, True
+
+        print("Encountered an error placing trade")
+        return messages, False
+
+    def trade_playwright(self, ticker, side, qty, account_index=0, screenshot=False):
         """
             ticker (Str) - The symbol you want to trade,
             side (str) - Either 'Buy' or 'Sell',
@@ -277,7 +408,7 @@ class Schwab:
         self.page.click("#btn-place-order")
 
         try:
-        self.page.wait_for_selector("text=Place Another Order", state='attached')
+            self.page.wait_for_selector("text=Place Another Order", state='attached')
         except:
             print("Could not find place another order button?")
 

@@ -1,31 +1,39 @@
 from schwab_api import Schwab
 from dotenv import load_dotenv
 import os
+import pyotp
 
 load_dotenv()
 def main():
 
     username = os.getenv("SCHWAB_USERNAME")
     password = os.getenv("SCHWAB_PASSWORD")
-    user_agent = os.getenv("SCHWAB_USER_AGENT")
+    totp = os.getenv("SCHWAB_TOTP")
 
     # Initialize our schwab instance
-    api = Schwab.get_instance(
+    api = Schwab(
         username=username,
         password=password,
-        user_agent=user_agent
+        totp=totp,
+        headless=True
     )
 
-    # Login
-    # First-time setup: you will need to enter an SMS confirmation code as input
+    # Login using playwright
     api.login(screenshot=True)
+    # Get information about all accounts holdings
+    account_info = api.get_account_info()
+    print(account_info)
 
-    # Make a trade
-    api.trade(
-        ticker="ticker", 
-        side="Buy", ## or "Sell" 
-        qty=1,
-        screenshot=False # for debugging turn this on
+    # Place a dry run trade for each account
+    messages, success = api.trade(
+        ticker="AAPL", 
+        side="Buy", #or Sell
+        qty=1, 
+        account_id=99999999, # Replace with your acount number
+        dry_run=True # If dry_run=True, we won't place the order, we'll just verify it.
     )
+
+    print(success)
+    print(messages)
 
 main()
