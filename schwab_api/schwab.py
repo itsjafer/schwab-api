@@ -36,18 +36,6 @@ class Schwab:
         if self.username is None or self.password is None or self.user_agent is None:
             raise Exception("Schwab expects the following constructor variables: `username`, `password`, `user_agent`")
 
-        self.playwright = sync_playwright().start()
-        self.browser = self.playwright.firefox.launch(
-            headless=self.headless,
-            slow_mo=100
-        )
-        self.page = self.browser.new_page(
-            user_agent=self.user_agent,
-            viewport={ 'width': 1920, 'height': 1080 }
-        )
-
-        stealth_sync(self.page)
-
     @staticmethod
     def get_instance(**kwargs):
         """The Schwab class. Used to interact with Charles Schwab. 
@@ -95,6 +83,17 @@ class Schwab:
         """
 
         print("Attempting to login")
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.firefox.launch(
+            headless=self.headless,
+            slow_mo=100
+        )
+        self.page = self.browser.new_page(
+            user_agent=self.user_agent,
+            viewport={ 'width': 1920, 'height': 1080 }
+        )
+
+        stealth_sync(self.page)
         # Go to https://www.schwab.com/
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
@@ -147,6 +146,7 @@ class Schwab:
             self.session.cookies = cookiejar_from_dict(cookies)
         if screenshot:
             self.page.screenshot(path="Logged_in.png")
+        self.page.close()
         self.browser.close()
         self.playwright.stop()
 
