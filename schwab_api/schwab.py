@@ -12,6 +12,7 @@ class Schwab(SessionManager):
 
         """
         self.headless = kwargs.get("headless", True)
+        self.browserType = kwargs.get("browserType", "firefox")
         super(Schwab, self).__init__()
    
     def get_account_info(self):

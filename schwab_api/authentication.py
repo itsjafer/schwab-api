@@ -16,9 +16,14 @@ class SessionManager:
         self.session = requests.Session()
 
         self.playwright = sync_playwright().start()
+        if self.browserType == "firefox":
         self.browser = self.playwright.firefox.launch(
             headless=self.headless
         )
+        else:
+            self.browser = self.playwright.webkit.launch(
+                headless=self.headless
+            )
 
         self.page = self.browser.new_page(
             user_agent=USER_AGENT,
