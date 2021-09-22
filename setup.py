@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="schwab_api",
     packages=setuptools.find_packages(),
-    version="0.1.4",
+    version="0.2.0",
     license="MIT",
     description="Unofficial Schwab API wrapper in Python 3.",
     author="Jafer Haider",
@@ -18,7 +18,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     download_url="https://github.com/itsjafer/schwab-api/tarball/master",
     keywords=["schwab", "python3", "api", "unofficial", "schwab-api", "schwab charles api"],
-    install_requires=["playwright", "playwright-stealth"],
+    install_requires=["playwright", "playwright-stealth", "pyotp", "python-vipaccess"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
