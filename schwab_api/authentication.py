@@ -17,9 +17,9 @@ class SessionManager:
 
         self.playwright = sync_playwright().start()
         if self.browserType == "firefox":
-        self.browser = self.playwright.firefox.launch(
-            headless=self.headless
-        )
+            self.browser = self.playwright.firefox.launch(
+                headless=self.headless
+            )
         else:
             self.browser = self.playwright.webkit.launch(
                 headless=self.headless
