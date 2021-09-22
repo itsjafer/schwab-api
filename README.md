@@ -30,6 +30,10 @@ python -m playwright install
 
 In order to login to Schwab without having to go through SMS verification everytime, we can create an authentication token (TOTP) and attach that to our account.
 
+If you'd like an easy way to do this, you can [go to my website and generate a TOTP there](https://itsjafer.com/#/schwab) by clicking 'Generate TOTP' and following the instructions.
+
+Alternatively, you can do this programmatically:
+
 ```
 from schwab_api import generate_totp
 
@@ -65,19 +69,8 @@ print("Logging into Schwab")
 logged_in = api.login(
     username=username,
     password=password,
-    totp_secret=totp_secret # Get this by following the section above
+    totp_secret=totp_secret # Get this by generating TOTP at https://itsjafer.com/#/schwab
 )
-
-# if a totp secret key isn't provided, fall back and try SMS auth
-if not logged_in:
-    print("Login was not complete; SMS authentication required")
-    # If we're not logged in, we need to do SMS confirmation
-    success = api.sms_login(
-        # Replace this with your SMS code or enter it on the command line
-        code=input("Please enter your SMS code: ") 
-    )
-    
-    assert success
 
 # Get information about all accounts holdings
 print("Getting account holdings information")
