@@ -56,6 +56,8 @@ For the Symantec ID:
 
 ### Quickstart
 
+You can run this code in a [Colab Notebook here](https://github.com/itsjafer/schwab-api/blob/main/Schwab_API_Example.ipynb).
+
 Here's some code that logs in, gets all account holdings, and makes a stock purchase:
 ```
 from schwab_api import Schwab
