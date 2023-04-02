@@ -70,8 +70,8 @@ class SessionManager:
         :type password: str
         :param password: The password for the schwab account/
 
-        :type by_totp: Optional[str]
-        :param by_totp: The TOTP secret used to complete multi-factor authentication 
+        :type totp_secret: Optional[str]
+        :param totp_secret: The TOTP secret used to complete multi-factor authentication 
             through Symantec VIP. If this isn't given, sign in will use SMS.
 
         :rtype: boolean
@@ -82,7 +82,6 @@ class SessionManager:
         # Log in to schwab using Playwright
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
-        self.page.wait_for_load_state('networkidle')
 
         # Wait for the login frame to load
         login_frame = "schwablmslogin"
@@ -107,8 +106,6 @@ class SessionManager:
                 self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
-
-        self.page.wait_for_load_state('networkidle')
 
         if self.page.url != urls.account_summary():
             # We need further authentication, so we'll send an SMS
