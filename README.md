@@ -82,7 +82,7 @@ pprint.pprint(account_info)
 print("The following account numbers were found: " + str(account_info.keys()))
 
 print("Placing a dry run trade for AAPL stock")
-# Place a dry run trade for each account
+# Place a dry run trade for account 99999999
 messages, success = api.trade(
     ticker="AAPL", 
     side="Buy", #or Sell
@@ -107,4 +107,5 @@ pprint.pprint(messages)
 ## TODO
 
 * Currently, we use a headless browser to login to Schwab; in the future, we want to do this purely with requests.
+* Documentation of functionality
 
