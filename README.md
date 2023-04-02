@@ -1,6 +1,6 @@
 # Schwab API
 
-**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab.**
+**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab. As of April 2023, this API continues to work as expected.**
 
 This package enables buying and selling securities programmatically on Charles Schwab. Currently, we use a headless browser to automate logging in in order to get authorization cookies. All other functionality is done through web requests made to Schwab's own API.
 
