@@ -1,6 +1,6 @@
 # Schwab API
 
-**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab. As of April 2023, this API continues to work as expected.**
+**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab. As of December 2023, this API continues to work as expected.**
 
 This package enables buying and selling securities programmatically on Charles Schwab. Currently, we use a headless browser to automate logging in in order to get authorization cookies. All other functionality is done through web requests made to Schwab's own API.
 
@@ -52,7 +52,7 @@ For the Symantec ID:
 
 1. Log in to Schwab and go to your [security center](https://client.schwab.com/clientapps/access/securityCenter#/main/epass). 
 1. Under two-step verification, select "Always at login", and then select "Security Token". 
-1. **Enter the symantec ID here that you generated using the code above**.
+1. **Enter the symantec ID here that you generated using my website or the code above**.
 
 ### Quickstart
 
@@ -99,13 +99,33 @@ pprint.pprint(messages)
 ## Features
 
 * Buying and Selling tickers
+* Account and Position Information
 * Multiple individual account support
 * MFA and TOTP authentication
-* Account and Position Information
-* Headless playwright implementation
+* V2 API implementation (for TD Ameritrade accounts)
+* Headless playwright implementation for authentication
 
 ## TODO
 
 * Currently, we use a headless browser to login to Schwab; in the future, we want to do this purely with requests.
 * Documentation of functionality
+
+## Development Guide
+
+Want to extend functionality? Here's how to get started:
+
+1. After forking, install dependencies:
+```
+pip install .
+playwright install && playwright install-deps
+```
+
+2. Run the example script:
+```
+pip install . && python example/example.py
+```
+
+3. Iterate on existing code: 
+* Authentication largely exists in `schwab_api/authentication.py` and is done using Playwright.
+* Trading happens in `schwab_api/schwab.py` in two functions: `trade` and `trade_v2` which use the legacy and new API respectively. Neither of these APIs are documented and were largely just reverse engineering through sniffing network requests in the UI.
 

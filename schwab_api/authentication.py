@@ -1,5 +1,6 @@
 import requests
 import pyotp
+import re
 from . import urls
 
 from playwright.sync_api import sync_playwright, TimeoutError
@@ -13,6 +14,7 @@ VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
     def __init__(self) -> None:
+        self.headers = None
         self.session = requests.Session()
 
         self.playwright = sync_playwright().start()
@@ -31,6 +33,12 @@ class SessionManager:
         )
 
         stealth_sync(self.page)
+
+    def check_auth(self):
+        r = self.session.get(urls.account_info_v2())
+        if r.status_code != 200:
+            return False
+        return True
 
     def save_and_close_session(self):
         cookies = {cookie["name"]: cookie["value"] for cookie in self.page.context.cookies()}
@@ -61,6 +69,10 @@ class SessionManager:
         self.save_and_close_session()
         return self.page.url == urls.account_summary()
 
+    def captureAuthToken(self, route):
+            self.headers = route.request.all_headers()
+            route.continue_()
+    
     def login(self, username, password, totp_secret=None):
         """ This function will log the user into schwab using Playwright and saving
         the authentication cookies in the session header. 
@@ -83,9 +95,15 @@ class SessionManager:
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
 
+
+        # Capture authorization token.
+        self.page.route(re.compile(r".*balancespositions*"), self.captureAuthToken)
+
         # Wait for the login frame to load
         login_frame = "schwablmslogin"
         self.page.wait_for_selector("#" + login_frame)
+
+        self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
 
         # Fill username
         self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
@@ -107,7 +125,7 @@ class SessionManager:
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
 
-        if self.page.url != urls.account_summary():
+        if self.page.url != urls.trade_ticket():
             # We need further authentication, so we'll send an SMS
             print("Authentication state is not available. We will need to go through two factor authentication.")
             print("You should receive a code through SMS soon")
@@ -121,6 +139,8 @@ class SessionManager:
                 self.page.click("text=Text Message")
                 self.page.click("input:has-text(\"Continue\")")
             return False
+
+        self.page.wait_for_selector("#_txtSymbol")
 
         # Save our session
         self.save_and_close_session()
