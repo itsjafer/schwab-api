@@ -74,6 +74,10 @@ logged_in = api.login(
     totp_secret=totp_secret # Get this by generating TOTP at https://itsjafer.com/#/schwab
 )
 
+# Get information about a few tickers
+quotes = api.quote(["PFE", "AAPL"])
+pprint.pprint(quotes)
+
 # Get information about all accounts holdings
 print("Getting account holdings information")
 account_info = api.get_account_info()
@@ -83,7 +87,7 @@ print("The following account numbers were found: " + str(account_info.keys()))
 
 print("Placing a dry run trade for AAPL stock")
 # Place a dry run trade for account 99999999
-messages, success = api.trade(
+messages, success = api.trade_v2(
     ticker="AAPL", 
     side="Buy", #or Sell
     qty=1, 
@@ -99,6 +103,7 @@ pprint.pprint(messages)
 ## Features
 
 * Buying and Selling tickers
+* Get quotes for different tickers
 * Account and Position Information
 * Multiple individual account support
 * MFA and TOTP authentication
