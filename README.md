@@ -107,7 +107,6 @@ pprint.pprint(messages)
 * Account and Position Information
 * Multiple individual account support
 * MFA and TOTP authentication
-* V2 API implementation (for TD Ameritrade accounts)
 * Headless playwright implementation for authentication
 
 ## TODO
