@@ -21,7 +21,7 @@ logged_in = api.login(
 )
 
 # Get information about a few tickers
-quotes = api.quote(["PFE", "AAPL"])
+quotes = api.quote_v2(["PFE", "AAPL"])
 pprint.pprint(quotes)
 
 # Get information about your accounts holdings
@@ -43,3 +43,7 @@ messages, success = api.trade_v2(
 print("The order verification was " + "successful" if success else "unsuccessful")
 print("The order verification produced the following messages: ")
 pprint.pprint(messages)
+
+orders = api.orders_v2()
+
+pprint.pprint(orders)

@@ -125,6 +125,7 @@ class SessionManager:
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
 
+        # NOTE: THIS FUNCTIONALITY WILL SOON BE UNSUPPORTED/DEPRECATED.
         if self.page.url != urls.trade_ticket():
             # We need further authentication, so we'll send an SMS
             print("Authentication state is not available. We will need to go through two factor authentication.")

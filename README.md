@@ -107,6 +107,7 @@ pprint.pprint(messages)
 * Multiple individual account support
 * MFA and TOTP authentication
 * Headless playwright implementation for authentication
+* Get order information
 * Limit / Stop orders are possible using trade_v2 parameters
 
 ## TODO

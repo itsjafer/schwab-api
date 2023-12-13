@@ -62,6 +62,82 @@ class Schwab(SessionManager):
 
         return account_info
 
+    def trade(self, ticker, side, qty, account_id, dry_run=True):
+        """
+            ticker (Str) - The symbol you want to trade,
+            side (str) - Either 'Buy' or 'Sell',
+            qty (int) - The amount of shares to buy/sell,
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
+                         we're looking for just XXXXXXXX.
+
+            Returns messages (list of strings), is_success (boolean)
+        """
+
+        if side == "Buy":
+            buySellCode = 1
+        elif side == "Sell":
+            buySellCode = 2
+        else:
+            raise Exception("side must be either Buy or Sell")
+
+        data = {
+            "IsMinQty":False,
+            "CustomerId":str(account_id),
+            "BuySellCode":buySellCode,
+            "Quantity":str(qty),
+            "IsReinvestDividends":False,
+            "SecurityId":ticker,
+            "TimeInForce":"1", # Day Only
+            "OrderType":1, # Market Order
+            "CblMethod":"FIFO",
+            "CblDefault":"FIFO",
+            "CostBasis":"FIFO",
+            }
+
+        r = self.session.post(urls.order_verification(), data)
+
+        if r.status_code != 200:
+            return [r.text], False
+        
+        response = json.loads(r.text)
+
+        messages = list()
+        for message in response["Messages"]:
+            messages.append(message["Message"])
+
+        if dry_run:
+            return messages, True
+
+        data = {
+            "AccountId": str(account_id),
+            "ActionType": side,
+            "ActionTypeText": side,
+            "BuyAction": side == "Buy",
+            "CostBasis": "FIFO",
+            "CostBasisMethod": "FIFO",
+            "IsMarketHours": True,
+            "ItemIssueId": int(response['IssueId']),
+            "NetAmount": response['NetAmount'],
+            "OrderId": int(response["Id"]),
+            "OrderType": "Market",
+            "Principal": response['QuoteAmount'],
+            "Quantity": str(qty),
+            "ShortDescription": urllib.parse.quote_plus(response['IssueShortDescription']),
+            "Symbol": response["IssueSymbol"],
+            "Timing": "Day Only"
+        }
+
+        r = self.session.post(urls.order_confirmation(), data)
+
+        if r.status_code != 200:
+            messages.append(r.text)
+            return messages, False
+
+        response = json.loads(r.text)
+        if response["ReturnCode"] == 0:
+            return messages, True
+
+        return messages, False
 
     def trade_v2(self,  
         ticker, 
@@ -152,7 +228,6 @@ class Schwab(SessionManager):
 
         # TODO: This needs to be fleshed out and clarified.
         if response["orderStrategy"]["orderReturnCode"] not in valid_return_codes:
-            print(r.text)
             return messages, False
 
         if dry_run:
@@ -179,84 +254,10 @@ class Schwab(SessionManager):
         
         return messages, False
 
-    def trade(self, ticker, side, qty, account_id, dry_run=True):
+    def quote_v2(self, tickers):
         """
-            ticker (Str) - The symbol you want to trade,
-            side (str) - Either 'Buy' or 'Sell',
-            qty (int) - The amount of shares to buy/sell,
-            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
-                         we're looking for just XXXXXXXX.
-
-            Returns messages (list of strings), is_success (boolean)
+        quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
-
-        if side == "Buy":
-            buySellCode = 1
-        elif side == "Sell":
-            buySellCode = 2
-        else:
-            raise Exception("side must be either Buy or Sell")
-
-        data = {
-            "IsMinQty":False,
-            "CustomerId":str(account_id),
-            "BuySellCode":buySellCode,
-            "Quantity":str(qty),
-            "IsReinvestDividends":False,
-            "SecurityId":ticker,
-            "TimeInForce":"1", # Day Only
-            "OrderType":1, # Market Order
-            "CblMethod":"FIFO",
-            "CblDefault":"FIFO",
-            "CostBasis":"FIFO",
-            }
-
-        r = self.session.post(urls.order_verification(), data)
-
-        if r.status_code != 200:
-            return [r.text], False
-        
-        response = json.loads(r.text)
-
-        messages = list()
-        for message in response["Messages"]:
-            messages.append(message["Message"])
-
-        if dry_run:
-            return messages, True
-
-        data = {
-            "AccountId": str(account_id),
-            "ActionType": side,
-            "ActionTypeText": side,
-            "BuyAction": side == "Buy",
-            "CostBasis": "FIFO",
-            "CostBasisMethod": "FIFO",
-            "IsMarketHours": True,
-            "ItemIssueId": int(response['IssueId']),
-            "NetAmount": response['NetAmount'],
-            "OrderId": int(response["Id"]),
-            "OrderType": "Market",
-            "Principal": response['QuoteAmount'],
-            "Quantity": str(qty),
-            "ShortDescription": urllib.parse.quote_plus(response['IssueShortDescription']),
-            "Symbol": response["IssueSymbol"],
-            "Timing": "Day Only"
-        }
-
-        r = self.session.post(urls.order_confirmation(), data)
-
-        if r.status_code != 200:
-            messages.append(r.text)
-            return messages, False
-
-        response = json.loads(r.text)
-        if response["ReturnCode"] == 0:
-            return messages, True
-
-        return messages, False
-
-    def quote(self, tickers):
         data = {
             "Symbols":tickers,
             "IsIra":False,
@@ -272,3 +273,19 @@ class Schwab(SessionManager):
 
         response = json.loads(r.text)
         return response["quotes"]
+
+    def orders_v2(self):
+        """
+        orders_v2 returns a list of orders for a Schwab Account. It is unclear to me how to filter by specific account.
+
+        Currently, the query parameters are hard coded to return ALL orders, but this can be easily adjusted.
+        """
+
+        # Adding this header seems to be necessary.
+        self.headers['schwab-resource-version'] = '2.0'
+        r = self.session.get(urls.orders_v2(), headers=self.headers)
+        if r.status_code != 200:
+            return [r.text], False
+
+        response = json.loads(r.text)
+        return response["Orders"]
