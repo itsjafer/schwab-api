@@ -74,7 +74,7 @@ logged_in = api.login(
 )
 
 # Get information about a few tickers
-quotes = api.quote(["PFE", "AAPL"])
+quotes = api.quote_v2(["PFE", "AAPL"])
 pprint.pprint(quotes)
 
 # Get information about all accounts holdings
