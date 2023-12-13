@@ -4,6 +4,16 @@
 
 This package enables buying and selling securities programmatically on Charles Schwab. Currently, we use a headless browser to automate logging in in order to get authorization cookies. All other functionality is done through web requests made to Schwab's own API.
 
+## Features
+
+* Buying and Selling tickers
+* Get quotes for multiple tickers
+* Get order information
+* Account and Position Information
+* Limit / Stop orders are possible using trade_v2 parameters
+* Multiple individual account support
+* MFA and TOTP authentication
+* Web Request implementation (with the exception of authentication)
 
 ## Live Demo
 
@@ -98,17 +108,6 @@ print("The order verification was " + "successful" if success else "unsuccessful
 print("The order verification produced the following messages: ")
 pprint.pprint(messages)
 ```
-
-## Features
-
-* Buying and Selling tickers
-* Get quotes for different tickers
-* Account and Position Information
-* Multiple individual account support
-* MFA and TOTP authentication
-* Headless playwright implementation for authentication
-* Get order information
-* Limit / Stop orders are possible using trade_v2 parameters
 
 ## TODO
 
