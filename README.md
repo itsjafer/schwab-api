@@ -26,11 +26,13 @@ pip install schwab-api
 python -m playwright install
 ```
 
-### Create a TOTP Authentication Token
+### Set up your account to use TOTP
 
-In order to login to Schwab without having to go through SMS verification everytime, we can create an authentication token (TOTP) and attach that to our account.
+In order to login to Schwab without having to go through SMS verification everytime, you'll need to create an authentication token (TOTP) and attach that to your Schwab account.
 
-If you'd like an easy way to do this, you can [go to my website and generate a TOTP there](https://itsjafer.com/#/schwab) by clicking 'Generate TOTP' and following the instructions.
+
+1. Download a TOTP app like Google Authenticator.
+2. [Go to my website and generate a TOTP key there](https://itsjafer.com/#/schwab) by clicking 'Generate TOTP' and following the instructions. You should get a Symantec ID and a TOTP key/QR code.
 
 Alternatively, you can do this programmatically:
 
@@ -43,16 +45,13 @@ print("Your symantec ID is: " + symantec_id)
 print("Your TOTP secret is: " + totp_secret)
 ```
 
-For the TOTP Secret:
-
-1. Download Duo Mobile, Google Authenticator, or any other authenticator of your choice and create an entry using the TOTP secret. You will be prompted to generate a code everytime you log in to Schwab and will need an authenticator app to do so.
-1. **Keep this TOTP secret handy** as you'll need to pass it to this API in order to login.
-
-For the Symantec ID:
-
-1. Log in to Schwab and go to your [security center](https://client.schwab.com/clientapps/access/securityCenter#/main/epass). 
-1. Under two-step verification, select "Always at login", and then select "Security Token". 
-1. **Enter the symantec ID here that you generated using my website or the code above**.
+3. Open Google Authenticator and click the `+` button to add a new account
+4. Either enter the TOTP key manually and scan the QR code from step 2.
+5. Log in to the Schwab [security center](https://client.schwab.com/app/access/securitysettings/#/security/verification)
+6. Under Two-Step Verification, select Always at Login, and then select "Security Token" as your method.
+7. Enter the Symantec ID from step 2 into the Credential ID field.
+8. Enter the 6-digit code from Google Authenticator into the Security Code field.
+9. Done! Now keep your TOTP secret from step 2 handy as your `SCHWAB_TOTP_SECRET` in your `.env` file under the example directory.
 
 ### Quickstart
 
@@ -108,6 +107,7 @@ pprint.pprint(messages)
 * Multiple individual account support
 * MFA and TOTP authentication
 * Headless playwright implementation for authentication
+* Limit / Stop orders are possible using trade_v2 parameters
 
 ## TODO
 

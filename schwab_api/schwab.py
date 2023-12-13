@@ -63,13 +63,33 @@ class Schwab(SessionManager):
         return account_info
 
 
-    def trade_v2(self,  ticker, side, qty, account_id, dry_run=True):
+    def trade_v2(self,  
+        ticker, 
+        side, 
+        qty, 
+        account_id,
+        dry_run=True,
+        # The Fields below are experimental fields that should only be changed if you know what you're doing.
+        order_type=49,
+        duration=48,
+        limit_price=0,
+        stop_price=0,
+        primary_security_type=46,
+        valid_return_codes = {0,10}):
         """
             ticker (Str) - The symbol you want to trade,
             side (str) - Either 'Buy' or 'Sell',
             qty (int) - The amount of shares to buy/sell,
             account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
                          we're looking for just XXXXXXXX.
+            order_type (int) - The order type. This is a Schwab-specific number, and there exists types 
+                        beyond 49 (Market) and 50 (Limit). This parameter allows setting specific types
+                        for those willing to trial-and-error.
+            duration (int) - The duration type for the order. For now, all that's been 
+                        tested is value 48 mapping to Day-only orders.
+            limit_price (number) - The limit price to set with the order, if necessary.
+            stop_price (number) -  The stop price to set with the order, if necessary.
+            primary_security_type (int) - The type of the security being traded. 
 
             Note: this function calls the new Schwab API, which is flakier and seems to have stricter authentication requirements.
             For now, only use this function if the regular trade function doesn't work for your use case.
@@ -91,15 +111,15 @@ class Schwab(SessionManager):
             },
             "OrderStrategy": {
                 # Unclear what the security types map to.
-                "PrimarySecurityType":46,
+                "PrimarySecurityType":primary_security_type,
                 "CostBasisRequest": {
                     "costBasisMethod":"FIFO",
                     "defaultCostBasisMethod":"FIFO"
                 },
-                "OrderType":"49",
-                "LimitPrice":"0",
-                "StopPrice":"0",
-                "Duration":"48",
+                "OrderType":str(order_type),
+                "LimitPrice":str(limit_price),
+                "StopPrice":str(stop_price),
+                "Duration":str(duration),
                 "AllNoneIn":False,
                 "DoNotReduceIn":False,
                 "OrderStrategyType":1,
@@ -108,7 +128,7 @@ class Schwab(SessionManager):
                         "Quantity":str(qty),
                         "LeavesQuantity":str(qty),
                         "Instrument":{"Symbol":ticker},
-                        "SecurityType":46,
+                        "SecurityType":primary_security_type,
                         "Instruction":buySellCode
                     }
                     ]},
@@ -131,7 +151,7 @@ class Schwab(SessionManager):
             messages.append(message["message"])
 
         # TODO: This needs to be fleshed out and clarified.
-        if response["orderStrategy"]["orderReturnCode"] not in {0, 10}:
+        if response["orderStrategy"]["orderReturnCode"] not in valid_return_codes:
             print(r.text)
             return messages, False
 
