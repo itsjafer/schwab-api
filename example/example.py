@@ -26,7 +26,7 @@ pprint.pprint(quotes)
 
 # Get information about your accounts holdings
 print("Getting account holdings information")
-account_info = api.get_account_info()
+account_info = api.get_account_info_v2()
 pprint.pprint(account_info)
 print("The following account numbers were found: " + str(account_info.keys()))
 

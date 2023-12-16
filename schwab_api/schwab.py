@@ -258,6 +258,7 @@ class Schwab(SessionManager):
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
+        self.update_token()
         data = {
             "Symbols":tickers,
             "IsIra":False,
@@ -274,18 +275,58 @@ class Schwab(SessionManager):
         response = json.loads(r.text)
         return response["quotes"]
 
-    def orders_v2(self):
+    def orders_v2(self, account_id=None):
         """
         orders_v2 returns a list of orders for a Schwab Account. It is unclear to me how to filter by specific account.
 
         Currently, the query parameters are hard coded to return ALL orders, but this can be easily adjusted.
         """
 
-        # Adding this header seems to be necessary.
+        self.update_token()
         self.headers['schwab-resource-version'] = '2.0'
+        if account_id:
+            self.headers["schwab-client-account"] = account_id
         r = self.session.get(urls.orders_v2(), headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
 
         response = json.loads(r.text)
         return response["Orders"]
+    
+    def get_account_info_v2(self):
+        account_info = dict()
+        self.update_token()
+        r = self.session.get(urls.positions_v2(), headers=self.headers)
+        response = json.loads(r.text)
+        for account in response['accounts']:
+            positions = list()
+            for security_group in account["groupedPositions"]:
+                if security_group["groupName"] == "Cash":
+                    continue
+                for position in security_group["positions"]:
+                    positions.append(
+                        Position(
+                            position["symbolDetail"]["symbol"],
+                            position["symbolDetail"]["description"],
+                            int(position["quantity"]),
+                            float(position["costDetail"]["costBasisDetail"]["costBasis"]),
+                            float(position["priceDetail"]["marketValue"])
+                        )._as_dict()
+                    )
+            account_info[int(account["accountId"])] = Account(
+                account["accountId"],
+                positions,
+                account["totals"]["marketValue"],
+                account["totals"]["cashInvestments"],
+                account["totals"]["accountValue"],
+                account["totals"].get("costBasis", 0),
+            )._as_dict()
+
+        return account_info
+    
+    def update_token(self):
+        self.session.cookies.pop('ADRUM_BT1', None)
+        self.session.cookies.pop('ADRUM_BTa', None)
+        r = self.session.get("https://client.schwab.com/api/auth/authorize/scope/api")
+        token = json.loads(r.text)['token']
+        self.headers['authorization'] = f"Bearer {token}"

@@ -15,6 +15,9 @@ def order_verification_v2():
 def account_info_v2():
     return "https://ausgateway.schwab.com/api/is.TradeOrderManagementWeb/v1/TradeOrderManagementWebPort/customer/accounts"
 
+def positions_v2():
+    return "https://ausgateway.schwab.com/api/is.Holdings/V1/Holdings/Holdings?=&includeCostBasis=true&includeRatings=true&includeUnderlyingOption=true"
+
 def ticker_quotes_v2():
     return "https://ausgateway.schwab.com/api/is.TradeOrderManagementWeb/v1/TradeOrderManagementWebPort/market/quotes/list"
 
