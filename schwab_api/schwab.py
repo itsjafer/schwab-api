@@ -180,6 +180,8 @@ class Schwab(SessionManager):
         else:
             raise Exception("side must be either Buy or Sell")
 
+        self.update_token()
+        
         data = {
             "UserContext": {
                 "AccountId":str(account_id),
