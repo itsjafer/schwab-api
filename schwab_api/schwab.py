@@ -224,6 +224,10 @@ class Schwab(SessionManager):
         response = json.loads(r.text)
 
         orderId = response['orderStrategy']['orderId']
+        firstOrderLeg = response['orderStrategy']['orderLegs'][0]
+        if "schwabSecurityId" in firstOrderLeg:
+            data["OrderStrategy"]["OrderLegs"][0]["Instrument"]["ItemIssueId"] = firstOrderLeg["schwabSecurityId"]
+
         messages = list()
         for message in response["orderStrategy"]["orderMessages"]:
             messages.append(message["message"])
