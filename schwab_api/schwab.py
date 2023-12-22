@@ -58,6 +58,7 @@ class Schwab(SessionManager):
                 account["Totals"]["CashInvestments"],
                 account["Totals"]["AccountValue"],
                 account["Totals"]["Cost"],
+                account["Totals"]["SettledFunds"],
             )._as_dict()
 
         return account_info
