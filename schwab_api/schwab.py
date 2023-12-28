@@ -180,7 +180,7 @@ class Schwab(SessionManager):
         else:
             raise Exception("side must be either Buy or Sell")
 
-        self.update_token()
+        self.update_token(token_type='update')
         
         data = {
             "UserContext": {
@@ -243,6 +243,7 @@ class Schwab(SessionManager):
         data["UserContext"]["CustomerId"] = 0
         data["OrderStrategy"]["OrderId"] = int(orderId)
         data["OrderProcessingControl"] = 2
+        self.update_token(token_type='update')
         r = self.session.post(urls.order_verification_v2(), json=data, headers=self.headers)
 
         if r.status_code != 200:
@@ -274,6 +275,7 @@ class Schwab(SessionManager):
         # Adding this header seems to be necessary.
         self.headers['schwab-resource-version'] = '1.0'
 
+        self.update_token(token_type='update')
         r = self.session.post(urls.ticker_quotes_v2(), json=data, headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
@@ -288,7 +290,7 @@ class Schwab(SessionManager):
         Currently, the query parameters are hard coded to return ALL orders, but this can be easily adjusted.
         """
 
-        self.update_token()
+        self.update_token(token_type='api')
         self.headers['schwab-resource-version'] = '2.0'
         if account_id:
             self.headers["schwab-client-account"] = account_id
@@ -301,7 +303,7 @@ class Schwab(SessionManager):
     
     def get_account_info_v2(self):
         account_info = dict()
-        self.update_token()
+        self.update_token(token_type='api')
         r = self.session.get(urls.positions_v2(), headers=self.headers)
         response = json.loads(r.text)
         for account in response['accounts']:
@@ -329,10 +331,11 @@ class Schwab(SessionManager):
             )._as_dict()
 
         return account_info
-    
-    def update_token(self):
+
+    def update_token(self, token_type='api'):
         self.session.cookies.pop('ADRUM_BT1', None)
         self.session.cookies.pop('ADRUM_BTa', None)
-        r = self.session.get("https://client.schwab.com/api/auth/authorize/scope/api")
+        r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
         token = json.loads(r.text)['token']
         self.headers['authorization'] = f"Bearer {token}"
+
