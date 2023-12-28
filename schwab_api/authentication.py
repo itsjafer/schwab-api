@@ -73,7 +73,7 @@ class SessionManager:
             self.headers = route.request.all_headers()
             route.continue_()
     
-    def login(self, username, password, totp_secret=None):
+    def login(self, username, password, totp_secret=None, version='v2'):
         """ This function will log the user into schwab using Playwright and saving
         the authentication cookies in the session header. 
         :type username: str
@@ -86,6 +86,9 @@ class SessionManager:
         :param totp_secret: The TOTP secret used to complete multi-factor authentication 
             through Symantec VIP. If this isn't given, sign in will use SMS.
 
+        :type version: Optional[str]
+        :param version: backward compatible with legacy/old API with 'v1' or 'old'
+
         :rtype: boolean
         :returns: True if login was successful and no further action is needed or False
             if login requires additional steps (i.e. SMS)
@@ -95,16 +98,24 @@ class SessionManager:
         with self.page.expect_navigation():
             self.page.goto("https://www.schwab.com/")
 
-
-        # Capture authorization token.
-        self.page.route(re.compile(r".*balancespositions*"), self.captureAuthToken)
+        if ('v2' in version):
+            # Capture authorization token.
+            self.page.route(re.compile(r".*balancespositions*"), self.captureAuthToken)
 
         # Wait for the login frame to load
         login_frame = "schwablmslogin"
         self.page.wait_for_selector("#" + login_frame)
-
-        self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
-
+        
+        if 'v1' in version or 'old' in version:
+            self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=0)   #Account Summary
+            NextPageUrls=urls.account_summary()
+        elif 'v2' in version:
+            self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
+            # self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)   #Trade Ticket
+            NextPageUrls=urls.trade_ticket()        
+        else:
+            raise Exception("version={} is not pre-defined".format(version))
+        
         # Fill username
         self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
         self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", username)
@@ -124,10 +135,16 @@ class SessionManager:
                 self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
-
+        
         # NOTE: THIS FUNCTIONALITY WILL SOON BE UNSUPPORTED/DEPRECATED.
-        if self.page.url != urls.trade_ticket():
+        
+        # if self.page.url != urls.trade_ticket():
+        if self.page.url != NextPageUrls:        
             # We need further authentication, so we'll send an SMS
+            ###############################################################################################
+            # print('[debug] not expected page {} but page {}'.format(urls.trade_ticket(),self.page.url))
+            #code below doesn't work once entered, no SMS in @cnMuggle case, 28Dec2023
+            ###############################################################################################
             print("Authentication state is not available. We will need to go through two factor authentication.")
             print("You should receive a code through SMS soon")
 
@@ -141,7 +158,8 @@ class SessionManager:
                 self.page.click("input:has-text(\"Continue\")")
             return False
 
-        self.page.wait_for_selector("#_txtSymbol")
+        if 'v2' in version:
+            self.page.wait_for_selector("#_txtSymbol")
 
         # Save our session
         self.save_and_close_session()
