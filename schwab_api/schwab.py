@@ -31,7 +31,7 @@ class Schwab(SessionManager):
         CustAccessInfo = self.session.cookies.get('CustAccessInfo')
         if CustAccessInfo and CustAccessInfo.endswith('|'):
             CustAccessInfo += 'AllAccts'
-        self.session.cookies['CustAccessInfo'] = CustAccessInfo
+            self.session.cookies['CustAccessInfo'] = CustAccessInfo
         r = self.session.get(urls.positions_data())
         response = json.loads(r.text)
         for account in response['Accounts']:
