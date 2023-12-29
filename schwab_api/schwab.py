@@ -334,6 +334,8 @@ class Schwab(SessionManager):
 
     def update_token(self, token_type='api'):
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
+        if not r.ok:
+            raise ValueError("Error updating Bearer token: {r.reason}")
         token = json.loads(r.text)['token']
         self.headers['authorization'] = f"Bearer {token}"
 
