@@ -1,5 +1,6 @@
 import json
 import urllib.parse
+import requests
 
 from . import urls
 from .account_information import Position, Account
@@ -21,6 +22,16 @@ class Schwab(SessionManager):
         """
         
         account_info = dict()
+        # In order for this to return info for all accounts, the web interface excludes the
+        # AcctInfo cookie and sets the CustAccessInfo cookie to a value like:
+        # '<something>|<some_acct_num>|AllAccts'
+        # instead of:
+        # '<something>|<some_acct_num>|'
+        requests.cookies.remove_cookie_by_name(self.session.cookies, 'AcctInfo')
+        CustAccessInfo = self.session.cookies.get('CustAccessInfo')
+        if CustAccessInfo and CustAccessInfo.endswith('|'):
+            CustAccessInfo += 'AllAccts'
+        self.session.cookies['CustAccessInfo'] = CustAccessInfo
         r = self.session.get(urls.positions_data())
         response = json.loads(r.text)
         for account in response['Accounts']:
