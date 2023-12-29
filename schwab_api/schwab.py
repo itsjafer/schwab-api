@@ -265,7 +265,6 @@ class Schwab(SessionManager):
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
-        self.update_token()
         data = {
             "Symbols":tickers,
             "IsIra":False,
