@@ -327,8 +327,8 @@ class Schwab(SessionManager):
                             position["symbolDetail"]["symbol"],
                             position["symbolDetail"]["description"],
                             int(position["quantity"]),
-                            float(position["costDetail"]["costBasisDetail"]["costBasis"]),
-                            float(position["priceDetail"]["marketValue"])
+                            0 if "costDetail" not in position else float(position["costDetail"]["costBasisDetail"]["costBasis"]),
+                            0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"])
                         )._as_dict()
                     )
             account_info[int(account["accountId"])] = Account(
@@ -338,6 +338,7 @@ class Schwab(SessionManager):
                 account["totals"]["cashInvestments"],
                 account["totals"]["accountValue"],
                 account["totals"].get("costBasis", 0),
+                None # TODO: Add cash as part of the account here
             )._as_dict()
 
         return account_info
