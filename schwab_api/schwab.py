@@ -191,7 +191,7 @@ class Schwab(SessionManager):
         else:
             raise Exception("side must be either Buy or Sell")
 
-        self.update_token()
+        self.update_token(token_type='update')
         
         data = {
             "UserContext": {
@@ -228,7 +228,7 @@ class Schwab(SessionManager):
         # Adding this header seems to be necessary.
         self.headers['schwab-resource-version'] = '1.0'
 
-        r = self.session.post(urls.order_verification_v2(), json=data, headers=self.headers)
+        r = requests.post(urls.order_verification_v2(), json=data, headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
 
@@ -254,7 +254,8 @@ class Schwab(SessionManager):
         data["UserContext"]["CustomerId"] = 0
         data["OrderStrategy"]["OrderId"] = int(orderId)
         data["OrderProcessingControl"] = 2
-        r = self.session.post(urls.order_verification_v2(), json=data, headers=self.headers)
+        self.update_token(token_type='update')
+        r = requests.post(urls.order_verification_v2(), json=data, headers=self.headers)
 
         if r.status_code != 200:
             return [r.text], False
@@ -275,7 +276,6 @@ class Schwab(SessionManager):
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
-        self.update_token()
         data = {
             "Symbols":tickers,
             "IsIra":False,
@@ -285,7 +285,8 @@ class Schwab(SessionManager):
         # Adding this header seems to be necessary.
         self.headers['schwab-resource-version'] = '1.0'
 
-        r = self.session.post(urls.ticker_quotes_v2(), json=data, headers=self.headers)
+        self.update_token(token_type='update')
+        r = requests.post(urls.ticker_quotes_v2(), json=data, headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
 
@@ -299,11 +300,11 @@ class Schwab(SessionManager):
         Currently, the query parameters are hard coded to return ALL orders, but this can be easily adjusted.
         """
 
-        self.update_token()
+        self.update_token(token_type='api')
         self.headers['schwab-resource-version'] = '2.0'
         if account_id:
             self.headers["schwab-client-account"] = account_id
-        r = self.session.get(urls.orders_v2(), headers=self.headers)
+        r = requests.get(urls.orders_v2(), headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
 
@@ -312,8 +313,8 @@ class Schwab(SessionManager):
     
     def get_account_info_v2(self):
         account_info = dict()
-        self.update_token()
-        r = self.session.get(urls.positions_v2(), headers=self.headers)
+        self.update_token(token_type='api')
+        r = requests.get(urls.positions_v2(), headers=self.headers)
         response = json.loads(r.text)
         for account in response['accounts']:
             positions = list()
@@ -340,10 +341,11 @@ class Schwab(SessionManager):
             )._as_dict()
 
         return account_info
-    
-    def update_token(self):
-        self.session.cookies.pop('ADRUM_BT1', None)
-        self.session.cookies.pop('ADRUM_BTa', None)
-        r = self.session.get("https://client.schwab.com/api/auth/authorize/scope/api")
+
+    def update_token(self, token_type='api'):
+        r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
+        if not r.ok:
+            raise ValueError("Error updating Bearer token: {r.reason}")
         token = json.loads(r.text)['token']
         self.headers['authorization'] = f"Bearer {token}"
+
