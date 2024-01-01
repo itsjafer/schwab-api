@@ -42,7 +42,7 @@ class Schwab(SessionManager):
                         Position(
                             position["DefaultSymbol"],
                             position["Description"],
-                            int(position["Quantity"]),
+                            float(position["Quantity"]),
                             float(position["Cost"]),
                             float(position["MarketValue"])
                         )._as_dict()
@@ -57,7 +57,7 @@ class Schwab(SessionManager):
                             Position(
                                 child_position["DefaultSymbol"],
                                 child_position["Description"],
-                                int(child_position["Quantity"]),
+                                float(child_position["Quantity"]),
                                 float(child_position["Cost"]),
                                 float(child_position["MarketValue"])
                             )._as_dict()
@@ -325,7 +325,7 @@ class Schwab(SessionManager):
                         Position(
                             position["symbolDetail"]["symbol"],
                             position["symbolDetail"]["description"],
-                            int(position["quantity"]),
+                            float(position["quantity"]),
                             0 if "costDetail" not in position else float(position["costDetail"]["costBasisDetail"]["costBasis"]),
                             0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"])
                         )._as_dict()
