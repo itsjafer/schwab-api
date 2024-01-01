@@ -1,12 +1,11 @@
 class Account(dict):
-    def __init__(self, account_id, positions, market_value, available_cash, account_value, cost_basis, settled_fund):
+    def __init__(self, account_id, positions, market_value, available_cash, account_value, cost_basis):
         self.account_id = account_id
         self.positions = positions
         self.market_value = market_value
         self.available_cash = available_cash
         self.account_value = account_value
         self.cost_basis = cost_basis
-        self.settled_fund = settled_fund
 
     def _as_dict(self):
         return {
@@ -16,7 +15,6 @@ class Account(dict):
             "available_cash": self.available_cash,
             "account_value": self.account_value,
             "cost_basis": self.cost_basis,
-            "settled_fund": self.settled_fund,
         }
 
     def __repr__(self) -> str:
