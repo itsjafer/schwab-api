@@ -22,6 +22,16 @@ class Schwab(SessionManager):
         """
         
         account_info = dict()
+        # In order for this to return info for all accounts, the web interface excludes the
+        # AcctInfo cookie and sets the CustAccessInfo cookie to a value like:
+        # '<something>|<some_acct_num>|AllAccts'
+        # instead of:
+        # '<something>|<some_acct_num>|'
+        requests.cookies.remove_cookie_by_name(self.session.cookies, 'AcctInfo')
+        CustAccessInfo = self.session.cookies.get('CustAccessInfo')
+        if CustAccessInfo and CustAccessInfo.endswith('|'):
+            CustAccessInfo += 'AllAccts'
+            self.session.cookies['CustAccessInfo'] = CustAccessInfo
         r = self.session.get(urls.positions_data())
         response = json.loads(r.text)
         for account in response['Accounts']:
@@ -59,6 +69,7 @@ class Schwab(SessionManager):
                 account["Totals"]["CashInvestments"],
                 account["Totals"]["AccountValue"],
                 account["Totals"]["Cost"],
+                account["Totals"]["SettledFunds"],
             )._as_dict()
 
         return account_info
@@ -317,8 +328,8 @@ class Schwab(SessionManager):
                             position["symbolDetail"]["symbol"],
                             position["symbolDetail"]["description"],
                             int(position["quantity"]),
-                            float(position["costDetail"]["costBasisDetail"]["costBasis"]),
-                            float(position["priceDetail"]["marketValue"])
+                            0 if "costDetail" not in position else float(position["costDetail"]["costBasisDetail"]["costBasis"]),
+                            0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"])
                         )._as_dict()
                     )
             account_info[int(account["accountId"])] = Account(
@@ -328,6 +339,7 @@ class Schwab(SessionManager):
                 account["totals"]["cashInvestments"],
                 account["totals"]["accountValue"],
                 account["totals"].get("costBasis", 0),
+                None # TODO: Add cash as part of the account here
             )._as_dict()
 
         return account_info
