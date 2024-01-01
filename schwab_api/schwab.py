@@ -336,8 +336,7 @@ class Schwab(SessionManager):
                 account["totals"]["marketValue"],
                 account["totals"]["cashInvestments"],
                 account["totals"]["accountValue"],
-                account["totals"].get("costBasis", 0),
-                None # TODO: Add cash as part of the account here
+                account["totals"].get("costBasis", 0)
             )._as_dict()
 
         return account_info
