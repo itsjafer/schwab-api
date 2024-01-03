@@ -364,7 +364,7 @@ class Schwab(SessionManager):
             if response["CancelOperationSuccessful"]:
                 return response, True
         except (json.decoder.JSONDecodeError, KeyError):
-            return response, False
+            return [r2.text], False
         return response, False
 
     def quote_v2(self, tickers):
