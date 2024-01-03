@@ -133,3 +133,7 @@ pip install . && python example/example.py
 * Authentication largely exists in `schwab_api/authentication.py` and is done using Playwright.
 * Trading happens in `schwab_api/schwab.py` in two functions: `trade` and `trade_v2` which use the legacy and new API respectively. Neither of these APIs are documented and were largely just reverse engineering through sniffing network requests in the UI.
 
+### Deployment
+
+Bumping the version number in `setup.py` will automatically trigger a deployment that must be approved by itsjafer@.
+
