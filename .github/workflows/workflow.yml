@@ -16,7 +16,7 @@ jobs:
       url: https://pypi.org/p/schwab-api
     permissions:
       id-token: write
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v3
