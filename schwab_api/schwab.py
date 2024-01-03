@@ -304,6 +304,69 @@ class Schwab(SessionManager):
 
         return messages, False
 
+    def cancel_order_v2(
+            self, account_id, order_id,
+            # The fields below are experimental and should only be changed if you know what
+            # you're doing.
+            instrument_type=46,
+            ):
+        """
+        Cancels an open order (specified by order ID) using the v2 API
+
+        account_id (int) - The account ID of the order. If the ID is XXXX-XXXX, we're looking for
+            just XXXXXXXX.
+        order_id (int) - The order ID as listed in orders_v2. The most recent order ID is likely:
+            orders_v2(account_id=account_id)[0]['OrderList'][0]['OrderId'].
+            Note: the order IDs listed in the v1 orders() are different
+        instrument_type (int) - It is unclear what this means or when it should be different
+        """
+        data = {
+            "TypeOfOrder": 0,
+            "OrderManagementSystem": 2,
+            "Orders": [{
+                "OrderId": order_id,
+                "IsLiveOrder": True,
+                "InstrumentType": instrument_type,
+                "CancelOrderLegs": [{}],
+                }],
+            "ContingentIdToCancel": 0,
+            "OrderIdToCancel": 0,
+            "OrderProcessingControl": 1,
+            "ConfirmCancelOrderId": 0,
+            }
+        self.headers["schwab-client-account"] = account_id
+        self.headers["schwab-resource-version"] = '2.0'
+        # Web interface uses bearer token retrieved from:
+        # https://client.schwab.com/api/auth/authorize/scope/api
+        # and it seems to be good for 1800s (30min)
+        self.update_token(token_type='api')
+        r1 = requests.post(urls.cancel_order_v2(), json=data, headers=self.headers)
+        if r1.status_code not in (200, 202):
+            return [r1.text], False
+
+        try:
+            response = json.loads(r1.text)
+            cancel_order_id = response['CancelOrderId']
+        except (json.decoder.JSONDecodeError, KeyError):
+            return [r1.text], False
+
+        data['ConfirmCancelOrderId'] = cancel_order_id
+        data['OrderProcessingControl'] = 2
+        # Web interface uses bearer token retrieved from:
+        # https://client.schwab.com/api/auth/authorize/scope/api
+        # and it seems to be good for 1800s (30min)
+        self.update_token(token_type='api')
+        r2 = requests.post(urls.cancel_order_v2(), json=data, headers=self.headers)
+        if r2.status_code not in (200, 202):
+            return [r2.text], False
+        try:
+            response = json.loads(r2.text)
+            if response["CancelOperationSuccessful"]:
+                return response, True
+        except (json.decoder.JSONDecodeError, KeyError):
+            return response, False
+        return response, False
+
     def quote_v2(self, tickers):
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
