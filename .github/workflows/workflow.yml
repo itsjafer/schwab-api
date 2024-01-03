@@ -1,10 +1,11 @@
 name: Python CI
 
 "on":
-  push: {}
+  push:
+    paths:
+    - 'setup.py'
   pull_request: {}
-  release:
-    types: [published]
+  release: {}
 
 jobs:
   pypi-publish:
