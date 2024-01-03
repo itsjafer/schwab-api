@@ -15,12 +15,12 @@ class Schwab(SessionManager):
         self.headless = kwargs.get("headless", True)
         self.browserType = kwargs.get("browserType", "firefox")
         super(Schwab, self).__init__()
-   
+
     def get_account_info(self):
         """
             Returns a dictionary of Account objects where the key is the account number
         """
-        
+
         account_info = dict()
         # In order for this to return info for all accounts, the web interface excludes the
         # AcctInfo cookie and sets the CustAccessInfo cookie to a value like:
@@ -51,7 +51,7 @@ class Schwab(SessionManager):
                     if not "ChildOptionPositions" in position:
                         continue
 
-                    # Add call positions if they exist 
+                    # Add call positions if they exist
                     for child_position in position["ChildOptionPositions"]:
                         positions.append(
                             Position(
@@ -78,7 +78,7 @@ class Schwab(SessionManager):
             ticker (Str) - The symbol you want to trade,
             side (str) - Either 'Buy' or 'Sell',
             qty (int) - The amount of shares to buy/sell,
-            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
                          we're looking for just XXXXXXXX.
 
             Returns messages (list of strings), is_success (boolean)
@@ -109,7 +109,7 @@ class Schwab(SessionManager):
 
         if r.status_code != 200:
             return [r.text], False
-        
+
         response = json.loads(r.text)
 
         messages = list()
@@ -150,10 +150,10 @@ class Schwab(SessionManager):
 
         return messages, False
 
-    def trade_v2(self,  
-        ticker, 
-        side, 
-        qty, 
+    def trade_v2(self,
+        ticker,
+        side,
+        qty,
         account_id,
         dry_run=True,
         # The Fields below are experimental fields that should only be changed if you know what you're doing.
@@ -162,21 +162,51 @@ class Schwab(SessionManager):
         limit_price=0,
         stop_price=0,
         primary_security_type=46,
-        valid_return_codes = {0,10}):
+        valid_return_codes = {0,10},
+        affirm_order=False,
+        ):
         """
             ticker (Str) - The symbol you want to trade,
             side (str) - Either 'Buy' or 'Sell',
             qty (int) - The amount of shares to buy/sell,
-            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX, 
-                         we're looking for just XXXXXXXX.
-            order_type (int) - The order type. This is a Schwab-specific number, and there exists types 
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
+                        we're looking for just XXXXXXXX.
+            order_type (int) - The order type. This is a Schwab-specific number, and there exists types
                         beyond 49 (Market) and 50 (Limit). This parameter allows setting specific types
                         for those willing to trial-and-error.
-            duration (int) - The duration type for the order. For now, all that's been 
+            duration (int) - The duration type for the order. For now, all that's been
                         tested is value 48 mapping to Day-only orders.
             limit_price (number) - The limit price to set with the order, if necessary.
             stop_price (number) -  The stop price to set with the order, if necessary.
-            primary_security_type (int) - The type of the security being traded. 
+            primary_security_type (int) - The type of the security being traded.
+            valid_return_codes (set) - Schwab returns an orderReturnCode in the response to both
+                        the verification and execution requests, and it appears to be the
+                        "severity" for the highest severity message.
+                        Verification response messages with severity 10 include:
+                            - The market is now closed. This order will be placed for the next
+                              trading day
+                            - You are purchasing an ETF...please read the prospectus
+                            - It is your responsibility to choose the cost basis method
+                              appropriate to your tax situation
+                            - Quote at the time of order verification: $xx.xx
+                        Verification response messages with severity 20 include at least:
+                            - Insufficient settled funds (different from insufficient buying power)
+                        Verification response messages with severity 25 include at least:
+                            - This order is executable because the buy (or sell) limit is higher
+                              (lower) than the ask (bid) price.
+                        For the execution response, the orderReturnCode is typically 0 for a
+                        successfully placed order.
+                        Execution response messages with severity 30 include:
+                            - Order Affirmation required (This means Schwab wants you to confirm
+                              that you really meant to place this order as-is since something about
+                              it meets Schwab's criteria for requiring verification. This is
+                              usually analogous to a checkbox you would need to check when using
+                              the web interface)
+            affirm_order (bool) - Schwab requires additional verification for certain orders, such
+                        as when a limit order is executable, or when buying some commodity ETFs.
+                        Setting this to True will likely provide the verification needed to execute
+                        these orders. You will likely also have to include the appropriate return
+                        code in valid_return_codes.
 
             Note: this function calls the new Schwab API, which is flakier and seems to have stricter authentication requirements.
             For now, only use this function if the regular trade function doesn't work for your use case.
@@ -192,7 +222,7 @@ class Schwab(SessionManager):
             raise Exception("side must be either Buy or Sell")
 
         self.update_token(token_type='update')
-        
+
         data = {
             "UserContext": {
                 "AccountId":str(account_id),
@@ -254,6 +284,8 @@ class Schwab(SessionManager):
         data["UserContext"]["CustomerId"] = 0
         data["OrderStrategy"]["OrderId"] = int(orderId)
         data["OrderProcessingControl"] = 2
+        if affirm_order:
+            data["OrderStrategy"]["OrderAffrmIn"] = True
         self.update_token(token_type='update')
         r = requests.post(urls.order_verification_v2(), json=data, headers=self.headers)
 
@@ -269,7 +301,7 @@ class Schwab(SessionManager):
 
         if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:
             return messages, True
-        
+
         return messages, False
 
     def quote_v2(self, tickers):
@@ -310,7 +342,7 @@ class Schwab(SessionManager):
 
         response = json.loads(r.text)
         return response["Orders"]
-    
+
     def get_account_info_v2(self):
         account_info = dict()
         self.update_token(token_type='api')
