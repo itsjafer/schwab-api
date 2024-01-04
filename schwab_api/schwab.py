@@ -27,11 +27,15 @@ class Schwab(SessionManager):
         # '<something>|<some_acct_num>|AllAccts'
         # instead of:
         # '<something>|<some_acct_num>|'
+        # There can be multiple cookies with the same name but having different attributes,
+        # i.e. domains '' and '.schwab.com', so we need to be careful when deleting or modifying
+        # cookies with a certain name
         requests.cookies.remove_cookie_by_name(self.session.cookies, 'AcctInfo')
-        CustAccessInfo = self.session.cookies.get('CustAccessInfo')
-        if CustAccessInfo and CustAccessInfo.endswith('|'):
-            CustAccessInfo += 'AllAccts'
-            self.session.cookies['CustAccessInfo'] = CustAccessInfo
+        for cookie in self.session.cookies:
+            if cookie.name == 'CustAccessInfo':
+                if cookie.value.endswith('|'):
+                    cookie.value += 'AllAccts'
+                    self.session.cookies.set_cookie(cookie)
         r = self.session.get(urls.positions_data())
         response = json.loads(r.text)
         for account in response['Accounts']:
