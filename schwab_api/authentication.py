@@ -93,7 +93,7 @@ class SessionManager:
         
         # Log in to schwab using Playwright
         with self.page.expect_navigation():
-            self.page.goto("https://www.schwab.com/")
+            self.page.goto("https://www.schwab.com/",timeout=120000)
 
 
         # Capture authorization token.
