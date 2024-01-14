@@ -274,6 +274,7 @@ class Schwab(SessionManager):
             data["OrderStrategy"]["OrderLegs"][0]["Instrument"]["ItemIssueId"] = firstOrderLeg["schwabSecurityId"]
 
         messages = list()
+        messages.append('# dry_run message #')
         for message in response["orderStrategy"]["orderMessages"]:
             messages.append(message["message"])
 
@@ -298,12 +299,14 @@ class Schwab(SessionManager):
 
         response = json.loads(r.text)
 
-        messages = list()
+        # messages = list()        
+        messages.append('## place order message ##')
         if "orderMessages" in response["orderStrategy"] and response["orderStrategy"]["orderMessages"] is not None:
             for message in response["orderStrategy"]["orderMessages"]:
                 messages.append(message["message"])
 
         if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:
+            messages.append('fail reason: orderReturnCode({}) is not valid_return_codes{}'.format(response["orderStrategy"]["orderReturnCode"], str(valid_return_codes)))
             return messages, True
 
         return messages, False
