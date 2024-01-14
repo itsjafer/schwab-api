@@ -306,7 +306,7 @@ class Schwab(SessionManager):
             for message in response["orderStrategy"]["orderMessages"]:
                 messages.append(message["message"])
 
-        if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:            
+        if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:
             return messages, True
 
         return messages, False
