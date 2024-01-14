@@ -280,6 +280,7 @@ class Schwab(SessionManager):
 
         # TODO: This needs to be fleshed out and clarified.
         if response["orderStrategy"]["orderReturnCode"] not in valid_return_codes:
+            messages.append('fail reason: orderReturnCode({}) is not valid_return_codes{}'.format(response["orderStrategy"]["orderReturnCode"], str(valid_return_codes)))
             return messages, False
 
         if dry_run:
@@ -305,8 +306,7 @@ class Schwab(SessionManager):
             for message in response["orderStrategy"]["orderMessages"]:
                 messages.append(message["message"])
 
-        if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:
-            messages.append('fail reason: orderReturnCode({}) is not valid_return_codes{}'.format(response["orderStrategy"]["orderReturnCode"], str(valid_return_codes)))
+        if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:            
             return messages, True
 
         return messages, False
