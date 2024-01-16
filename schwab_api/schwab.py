@@ -77,6 +77,44 @@ class Schwab(SessionManager):
 
         return account_info
 
+    def get_transaction_history_v2(self, account_id):
+        """
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
+                        we're looking for just XXXXXXXX.
+
+            Returns a dictionary of transaction history entries for the provided account ID.
+        """
+
+        data = {
+            "timeFrame": "All",
+            "selectedTransactionTypes": [
+                "Adjustments",
+                "AtmActivity",
+                "BillPay",
+                "CorporateActions",
+                "Checks",
+                "Deposits",
+                "DividendsAndCapitalGains",
+                "ElectronicTransfers",
+                "Fees",
+                "Interest",
+                "Misc",
+                "SecurityTransfers",
+                "Taxes",
+                "Trades",
+                "VisaDebitCard",
+                "Withdrawals"
+            ],
+            "exportType": "Json",
+            "selectedAccountId": str(account_id),
+            "sortColumn": "Date",
+            "sortDirection": "Descending"
+        }
+        r = requests.post(urls.transaction_history_v2(), json=data, headers=self.headers)
+        if r.status_code != 200:
+            return [r.text], False
+        return json.loads(r.text)
+
     def trade(self, ticker, side, qty, account_id, dry_run=True):
         """
             ticker (Str) - The symbol you want to trade,

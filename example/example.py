@@ -28,7 +28,13 @@ pprint.pprint(quotes)
 print("Getting account holdings information")
 account_info = api.get_account_info_v2()
 pprint.pprint(account_info)
-print("The following account numbers were found: " + str(account_info.keys()))
+account_numbers = list(account_info.keys())
+print("The following account numbers were found: " + str(account_numbers))
+
+# Get transaction history for an account
+print("Getting full transaction history for account " + str(account_numbers[0]))
+transaction_history = api.get_transaction_history_v2(account_numbers[0])
+pprint.pprint(transaction_history)
 
 print("Placing a dry run trade for PFE stock")
 # Place a dry run trade for each account
