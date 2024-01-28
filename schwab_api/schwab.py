@@ -455,10 +455,14 @@ class Schwab(SessionManager):
         response = json.loads(r.text)
         for account in response['accounts']:
             positions = list()
+            valid_parse = True
             for security_group in account["groupedPositions"]:
                 if security_group["groupName"] == "Cash":
                     continue
                 for position in security_group["positions"]:
+                    if "symbol" not in position["symbolDetail"]:
+                        valid_parse = False
+                        break
                     positions.append(
                         Position(
                             position["symbolDetail"]["symbol"],
@@ -468,6 +472,8 @@ class Schwab(SessionManager):
                             0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"])
                         )._as_dict()
                     )
+            if not valid_parse:
+                continue
             account_info[int(account["accountId"])] = Account(
                 account["accountId"],
                 positions,
