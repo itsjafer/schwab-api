@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 import requests
+import sys
 
 from . import urls
 from .account_information import Position, Account
@@ -48,7 +49,8 @@ class Schwab(SessionManager):
                             position["Description"],
                             float(position["Quantity"]),
                             float(position["Cost"]),
-                            float(position["MarketValue"])
+                            float(position["MarketValue"]),
+                            position["ItemIssueId"]
                         )._as_dict()
                     )
 
@@ -63,7 +65,8 @@ class Schwab(SessionManager):
                                 child_position["Description"],
                                 float(child_position["Quantity"]),
                                 float(child_position["Cost"]),
-                                float(child_position["MarketValue"])
+                                float(child_position["MarketValue"]),
+                                child_position["ItemIssueId"]
                             )._as_dict()
                         )
             account_info[int(account["AccountId"])] = Account(
@@ -469,7 +472,8 @@ class Schwab(SessionManager):
                             position["symbolDetail"]["description"],
                             float(position["quantity"]),
                             0 if "costDetail" not in position else float(position["costDetail"]["costBasisDetail"]["costBasis"]),
-                            0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"])
+                            0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"]),
+                            position["symbolDetail"]["schwabSecurityId"]
                         )._as_dict()
                     )
             if not valid_parse:
@@ -484,6 +488,52 @@ class Schwab(SessionManager):
             )._as_dict()
 
         return account_info
+
+    def get_lot_info_v2(self, account_id, security_id):
+        """
+        Gets info on the lots for a given position.
+
+        account_id (int) - The account where the position is.
+        security_id (int) - A reference to an aggregate position in a security
+        for an account. Obtainable from position["security_id"]. This is an
+        account-specific unique ID, not the CUSIP or ticker.
+
+        Returns a 2-tuple is_success, value with types (boolean, Union[dict,
+        str]).
+        If there was an error (response code not 207 or 200), returns the
+        response body as the second value, which contains error details.
+        Otherwise, returns a dict with the following structure:
+        {
+            'isCostFullyKnown': bool,
+            'isGainLossFullyKnown': bool,
+            'lotErrorMessages': [{'errorCode': '39',
+                                'message': 'LATEST PRICE QUOTES USED'}],
+            'lotPrice': float,
+            'lots': [{'costBasis': float,
+                    'costPerShare': float,
+                    'gainLoss': float,
+                    'gainLossPercent': float,
+                    'isEdited': bool,
+                    'isLongTerm': bool,
+                    'lotId': string,
+                    'marketValue': float,
+                    'openDate': date,
+                    'quantity': float}, ...],
+            'lotsCount': int,
+            'totalCostBasis': float,
+            'totalGainLossDollar': float,
+            'totalGainLossPercent': float,
+            'totalLotsQuantity': float,
+            'totalMarketValue': float
+        }
+        """
+        self.update_token("api")
+        self.headers["schwab-client-ids"] = str(account_id)
+        r = requests.get(
+            urls.lot_details_v2(), params={
+                "isLong": True, "itemissueid": security_id}, headers=self.headers)
+        is_success = r.status_code in [200, 207]
+        return is_success, (is_success and json.loads(r.text) or r.text)
 
     def update_token(self, token_type='api'):
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")

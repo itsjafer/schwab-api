@@ -24,12 +24,13 @@ class Account(dict):
         return str(self._as_dict())
 
 class Position(dict):
-    def __init__(self, symbol, description, quantity, cost, market_value):
+    def __init__(self, symbol, description, quantity, cost, market_value, security_id):
         self.symbol = symbol
         self.description = description
         self.quantity = quantity
         self.cost = cost
         self.market_value = market_value
+        self.security_id = security_id
 
     def _as_dict(self):
         return {
@@ -37,7 +38,8 @@ class Position(dict):
             "description": self.description,
             "quantity": self.quantity,
             "cost": self.cost,
-            "market_value": self.market_value
+            "market_value": self.market_value,
+            "security_id": self.security_id
         }
 
     def __repr__(self) -> str:
