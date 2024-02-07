@@ -206,6 +206,7 @@ class Schwab(SessionManager):
         primary_security_type=46,
         valid_return_codes = {0,10},
         affirm_order=False,
+        costBasis='FIFO'
         ):
         """
             ticker (Str) - The symbol you want to trade,
@@ -215,9 +216,18 @@ class Schwab(SessionManager):
                         we're looking for just XXXXXXXX.
             order_type (int) - The order type. This is a Schwab-specific number, and there exists types
                         beyond 49 (Market) and 50 (Limit). This parameter allows setting specific types
-                        for those willing to trial-and-error.
+                        for those willing to trial-and-error. For reference but not tested: 
+                        49 - Market
+                        50 - Limit
+                        51 - Stop market
+                        52 - Stop limit
+                        84 - Trailing stop
+                        53 - Market on close
             duration (int) - The duration type for the order. For now, all that's been
                         tested is value 48 mapping to Day-only orders.
+                        48 - Day
+                        49 - GTC Good till canceled
+                        201 - Day + extended hours
             limit_price (number) - The limit price to set with the order, if necessary.
             stop_price (number) -  The stop price to set with the order, if necessary.
             primary_security_type (int) - The type of the security being traded.
@@ -249,7 +259,14 @@ class Schwab(SessionManager):
                         Setting this to True will likely provide the verification needed to execute
                         these orders. You will likely also have to include the appropriate return
                         code in valid_return_codes.
-
+            costBasis (str) - Set the cost basis for a sell order. Important tax implications. See:
+                         https://help.streetsmart.schwab.com/edge/1.22/Content/Cost%20Basis%20Method.htm 
+                        'FIFO': First In First Out
+                        'HCLOT': High Cost
+                        'LCLOT': Low Cost
+                        'LIFO': Last In First Out
+                        'BTAX': Tax Lot Optimizer
+                        ('VSP': Specific Lots -> just for reference. Not implemented: Requires to select lots manually.)
             Note: this function calls the new Schwab API, which is flakier and seems to have stricter authentication requirements.
             For now, only use this function if the regular trade function doesn't work for your use case.
 
@@ -274,8 +291,8 @@ class Schwab(SessionManager):
                 # Unclear what the security types map to.
                 "PrimarySecurityType":primary_security_type,
                 "CostBasisRequest": {
-                    "costBasisMethod":"FIFO",
-                    "defaultCostBasisMethod":"FIFO"
+                    "costBasisMethod":costBasis,
+                    "defaultCostBasisMethod":costBasis
                 },
                 "OrderType":str(order_type),
                 "LimitPrice":str(limit_price),
