@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 import requests
+import warnings
 
 from . import urls
 from .account_information import Position, Account
@@ -279,6 +280,19 @@ class Schwab(SessionManager):
             buySellCode = "50"
         else:
             raise Exception("side must be either Buy or Sell")
+
+        # Handling formating of limit_price to avoid error.
+        # checking how many decimal places are in limit_price. 
+        decimal_places = len(str(float(limit_price)).split('.')[1])
+        # Max 2 decimal places allowed for price >= $1 and 4 decimal places for price < $1.
+        if limit_price >= 1:
+            if decimal_places > 2:
+                limit_price = round(limit_price,2)
+                raise warnings.warn(f"For limit_price >= 1, Only 2 decimal places allowed. Rounded price_limit to: {price_limit}")
+        else:
+            if decimal_places > 4:
+                limit_price = round(limit_price,4)
+                raise warnings.warn(f"For limit_price < 1, Only 4 decimal places allowed. Rounded price_limit to: {price_limit}")
 
         self.update_token(token_type='update')
 
