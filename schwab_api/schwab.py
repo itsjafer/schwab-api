@@ -1,7 +1,6 @@
 import json
 import urllib.parse
 import requests
-import warnings
 
 from . import urls
 from .account_information import Position, Account
@@ -261,7 +260,8 @@ class Schwab(SessionManager):
                         these orders. You will likely also have to include the appropriate return
                         code in valid_return_codes.
             costBasis (str) - Set the cost basis for a sell order. Important tax implications. See:
-                         https://help.streetsmart.schwab.com/edge/1.22/Content/Cost%20Basis%20Method.htm 
+                         https://help.streetsmart.schwab.com/edge/1.22/Content/Cost%20Basis%20Method.htm
+                         Only tested FIFO and BTAX.
                         'FIFO': First In First Out
                         'HCLOT': High Cost
                         'LCLOT': Low Cost
@@ -282,17 +282,18 @@ class Schwab(SessionManager):
             raise Exception("side must be either Buy or Sell")
 
         # Handling formating of limit_price to avoid error.
-        # checking how many decimal places are in limit_price. 
+        # Checking how many decimal places are in limit_price. 
         decimal_places = len(str(float(limit_price)).split('.')[1])
+        limit_price_warning = None
         # Max 2 decimal places allowed for price >= $1 and 4 decimal places for price < $1.
         if limit_price >= 1:
             if decimal_places > 2:
                 limit_price = round(limit_price,2)
-                raise warnings.warn(f"For limit_price >= 1, Only 2 decimal places allowed. Rounded price_limit to: {price_limit}")
+                limit_price_warning = f"For limit_price >= 1, Only 2 decimal places allowed. Rounded price_limit to: {limit_price}"
         else:
             if decimal_places > 4:
                 limit_price = round(limit_price,4)
-                raise warnings.warn(f"For limit_price < 1, Only 4 decimal places allowed. Rounded price_limit to: {price_limit}")
+                limit_price_warning = f"For limit_price < 1, Only 4 decimal places allowed. Rounded price_limit to: {limit_price}"
 
         self.update_token(token_type='update')
 
@@ -343,6 +344,8 @@ class Schwab(SessionManager):
             data["OrderStrategy"]["OrderLegs"][0]["Instrument"]["ItemIssueId"] = firstOrderLeg["schwabSecurityId"]
 
         messages = list()
+        if limit_price_warning is not None:
+            messages.append(limit_price_warning)
         for message in response["orderStrategy"]["orderMessages"]:
             messages.append(message["message"])
 
@@ -368,6 +371,8 @@ class Schwab(SessionManager):
         response = json.loads(r.text)
 
         messages = list()
+        if limit_price_warning is not None:
+            messages.append(limit_price_warning)
         if "orderMessages" in response["orderStrategy"] and response["orderStrategy"]["orderMessages"] is not None:
             for message in response["orderStrategy"]["orderMessages"]:
                 messages.append(message["message"])
@@ -516,4 +521,3 @@ class Schwab(SessionManager):
             raise ValueError(f"Error updating Bearer token: {r.reason}")
         token = json.loads(r.text)['token']
         self.headers['authorization'] = f"Bearer {token}"
-
