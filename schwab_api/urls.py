@@ -30,6 +30,9 @@ def cancel_order_v2():
 def transaction_history_v2():
     return "https://ausgateway.schwab.com/api/is.TransactionHistoryWeb/TransactionHistoryInterface/TransactionHistory/brokerage/transactions/export"
 
+def lot_details_v2():
+    return "https://ausgateway.schwab.com/api/is.Holdings/V1/Lots"
+
 # Old API
 def positions_data():
     return "https://client.schwab.com/api/PositionV2/PositionsDataV2"

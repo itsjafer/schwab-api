@@ -31,6 +31,15 @@ pprint.pprint(account_info)
 account_numbers = list(account_info.keys())
 print("The following account numbers were found: " + str(account_numbers))
 
+# Get the lot info for a position in an account
+positions = account_info[account_numbers[0]]["positions"]
+if positions:
+    print(
+        f"""Getting lot info for position {positions[0]["security_id"]} in account {account_numbers[0]}""")
+    lot_info = api.get_lot_info_v2(
+        account_numbers[0], positions[0]["security_id"])
+    pprint.pprint(lot_info)
+
 # Get transaction history for an account
 print("Getting full transaction history for account " + str(account_numbers[0]))
 transaction_history = api.get_transaction_history_v2(account_numbers[0])
