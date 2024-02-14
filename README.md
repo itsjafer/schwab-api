@@ -9,6 +9,8 @@ This package enables buying and selling securities programmatically on Charles S
 * Buying and Selling tickers
 * Get quotes for multiple tickers
 * Get order information
+* Get transaction history
+* Get tax lot info
 * Account and Position Information
 * Limit / Stop orders are possible using trade_v2 parameters
 * Multiple individual account support
