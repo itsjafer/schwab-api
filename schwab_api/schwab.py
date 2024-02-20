@@ -571,6 +571,43 @@ class Schwab(SessionManager):
         is_success = r.status_code in [200, 207]
         return is_success, (is_success and json.loads(r.text) or r.text)
 
+    def get_options_chains_v2(self, ticker, ExpirationDates, NextOptionSymbols, greeks = False):
+        """
+        get_options_chains_v2 takes a ticker, a list of expiration dates and returns option chains information through the Schwab API.
+        """
+        data = {
+            "Symbol":tickers,
+            "ExpirationDates":ExpirationDates,
+            "NextOptionSymbols":NextOptionSymbols,
+            "IncludeGreeks":greeks
+        }
+
+        # Adding this header seems to be necessary.
+        self.headers['schwab-resource-version'] = '1.0'
+
+        self.update_token(token_type='update')
+        r = requests.get(urls.option_chains_v2(), json=data, headers=self.headers)
+        if r.status_code != 200:
+            return [r.text], False
+
+        response = json.loads(r.text)
+        return response
+
+    def get_option_series(self, ticker):
+        """
+        get_options_chains_v2 takes a ticker and returns option series information such as strike prices, expiration dates and corresponding option symbols through the Schwab API.
+        """
+
+        r = requests.get(urls.option_Series_v2()+ticker+".txt")
+        if r.status_code != 200:
+            return [r.text], False
+        #removing the first and last line to extract the json text
+        text = '\n'.join(r.text.split('\n')[1:-2])
+        #converting to json object
+        response = json.loads(text)
+        
+        return response
+
     def update_token(self, token_type='api'):
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
         if not r.ok:
