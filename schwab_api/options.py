@@ -19,7 +19,7 @@ def generate_option_symbol(Root, expiration_date, Strike_Price, Type):
         Type = "C" if Type == "Call" else "P"
     else:
         raise ValueError("Type is invalid, it must be 'Call' or 'Put'")
-    expiration_date = expiration_date.strftime("%m%d%y")
+    expiration_date = expiration_date.strftime("%y%m%d")
     return Root+"  "+Expiration_YYMMDD+Type+Strike_Price
 
 class OptionSeries:
