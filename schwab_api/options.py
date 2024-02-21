@@ -15,7 +15,7 @@ def generate_option_symbol(Root, expiration_date, Strike_Price, Type):
     N=8-len(Strike_Price)
     #add leading zeroes
     Strike_Price = '0'*N+Strike_Price
-    if Type == "Call" or Type == "Put"
+    if Type == "Call" or Type == "Put":
         Type = "C" if Type == "Call" else "P"
     else:
         raise ValueError("Type is invalid, it must be 'Call' or 'Put'")
@@ -46,7 +46,7 @@ class OptionSeries:
         sub_strikes = []
         strikes = []
         for i in self.option_series["Expirations"]:
-            if i["Date"] == expiration_date.strftime("%m/%d/%Y"):
+            if datetime.strptime(i["Date"],"%m/%d/%Y") == expiration_date:
                 Roots = i["Roots"]
                 for r in Roots:
                     for s in i["Strikes"]:
@@ -63,7 +63,7 @@ class OptionSeries:
         #roots stores the indexes of Roots
         roots = []
         for i in self.option_series["Expirations"]:
-            if i["Date"] == expiration_date.strftime("%m/%d/%Y"):
+            if datetime.strptime(i["Date"],"%m/%d/%Y") == expiration_date:
                 roots = i["Roots"]
         return [Roots[r] for r in roots]
 
