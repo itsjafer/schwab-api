@@ -11,9 +11,9 @@ def generate_option_symbol(Root, expiration_date, Strike_Price, Type):
     """
     Strike_Price = int(Strike_Price*10000)
     Strike_Price = str(Strike_Price)
-    #calculate number of leading zeroes requires to make 10 digit string
-    N=10-len(Strike_Price)
-    #add leading zeroes to make it 10 digits
+    #calculate number of leading zeroes requires to make a 8 digit string for price
+    N=8-len(Strike_Price)
+    #add leading zeroes
     Strike_Price = '0'*N+Strike_Price
     if Type == "Call" or Type == "Put"
         Type = "C" if Type == "Call" else "P"
@@ -67,3 +67,9 @@ class OptionSeries:
                 roots = i["Roots"]
         return [Roots[r] for r in roots]
 
+class OptionChains:
+    def __init__(self, option_chains):
+        """
+            Option chains class used to process data from the json response
+        """
+        self.option_series = option_chains
