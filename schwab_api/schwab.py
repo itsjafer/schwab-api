@@ -571,31 +571,38 @@ class Schwab(SessionManager):
         is_success = r.status_code in [200, 207]
         return is_success, (is_success and json.loads(r.text) or r.text)
 
-    def get_options_chains_v2(self, ticker, ExpirationDates, NextOptionSymbols, greeks = False):
+    def get_options_chains_v2(self, ticker, ExpirationDates, greeks = False):
         """
         get_options_chains_v2 takes a ticker, a list of expiration dates and returns option chains information through the Schwab API.
         """
+        expiration_date = []
+        for date in ExpirationDates:
+            # using python format to remove leading 0 for month and day.
+            # datetime.strftime leaves leading 0 and removing them is different for Unix and Windows.
+            formatted_date = '{dt.month}/{dt.day}/{dt.year}'.format(dt = date)
+            expiration_date.append(formatted_date)
         data = {
-            "Symbol":tickers,
-            "ExpirationDates":ExpirationDates,
-            "NextOptionSymbols":NextOptionSymbols,
-            "IncludeGreeks":greeks
+            "Symbol":ticker,
+            "ExpirationDates": ",".join(expiration_date),
+            "IncludeGreeks": "true" if greeks else "false"
         }
+
+        full_url= urllib.parse.urljoin(urls.option_chains_v2(), '?' + urllib.parse.urlencode(data))
 
         # Adding this header seems to be necessary.
         self.headers['schwab-resource-version'] = '1.0'
 
         self.update_token(token_type='update')
-        r = requests.get(urls.option_chains_v2(), json=data, headers=self.headers)
+        r = requests.get(full_url, headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
 
         response = json.loads(r.text)
         return response
 
-    def get_option_series(self, ticker):
+    def get_option_series_v2(self, ticker):
         """
-        get_options_chains_v2 takes a ticker and returns option series information such as strike prices, expiration dates and corresponding option symbols through the Schwab API.
+        get_options_series_v2 takes a ticker and returns option series information such as strike prices, expiration dates and corresponding option symbols through the Schwab API.
         """
 
         r = requests.get(urls.option_series_v2()+ticker+".txt")
