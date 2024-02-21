@@ -598,7 +598,7 @@ class Schwab(SessionManager):
         get_options_chains_v2 takes a ticker and returns option series information such as strike prices, expiration dates and corresponding option symbols through the Schwab API.
         """
 
-        r = requests.get(urls.option_Series_v2()+ticker+".txt")
+        r = requests.get(urls.option_series_v2()+ticker+".txt")
         if r.status_code != 200:
             return [r.text], False
         #removing the first and last line to extract the json text
