@@ -9,7 +9,7 @@ def generate_option_symbol(Root, expiration_date, Strike_Price, Type):
         
         Returns the option symbol (str).
     """
-    Strike_Price = int(Strike_Price*10000)
+    Strike_Price = int(Strike_Price*1000)
     Strike_Price = str(Strike_Price)
     #calculate number of leading zeroes requires to make a 8 digit string for price
     N=8-len(Strike_Price)
