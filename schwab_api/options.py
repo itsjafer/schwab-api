@@ -20,7 +20,7 @@ def generate_option_symbol(Root, expiration_date, Strike_Price, Type):
     else:
         raise ValueError("Type is invalid, it must be 'Call' or 'Put'")
     expiration_date = expiration_date.strftime("%y%m%d")
-    return Root+"  "+Expiration_YYMMDD+Type+Strike_Price
+    return Root+"  "+expiration_date+Type+Strike_Price
 
 class OptionSeries:
     def __init__(self, option_series):
@@ -41,14 +41,14 @@ class OptionSeries:
     def get_strikes(self, expiration_date):
         """
             expiration_date (datetime) - date at which option expires 
-            Returns a list of strike prices matching the date
+            Returns a list of lists with the first index being the ubdex of root
         """
         sub_strikes = []
         strikes = []
         for i in self.option_series["Expirations"]:
             if datetime.strptime(i["Date"],"%m/%d/%Y") == expiration_date:
                 Roots = i["Roots"]
-                for r in range(len(Roots)):
+                for r in Roots:
                     for s in i["Strikes"]:
                         if r == s["Root"]:
                             sub_strikes.append(s["Price"])
