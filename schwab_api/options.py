@@ -48,7 +48,7 @@ class OptionSeries:
         for i in self.option_series["Expirations"]:
             if datetime.strptime(i["Date"],"%m/%d/%Y") == expiration_date:
                 Roots = i["Roots"]
-                for r in len(Roots):
+                for r in range(len(Roots)):
                     for s in i["Strikes"]:
                         if r == s["Root"]:
                             sub_strikes.append(s["Price"])
