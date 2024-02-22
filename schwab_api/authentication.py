@@ -9,7 +9,7 @@ from playwright_stealth import stealth_sync
 
 
 # Constants
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:{version}) Gecko/20100101 Firefox/"
 VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
@@ -23,12 +23,12 @@ class SessionManager:
                 headless=self.headless
             )
         else:
-            self.browser = self.playwright.webkit.launch(
-                headless=self.headless
-            )
+            #webkit doesn't or no longer works when trying to log in.
+            raise ValueError("Only supported browserType is 'firefox'")
 
+        user_agent = USER_AGENT + self.browser.version
         self.page = self.browser.new_page(
-            user_agent=USER_AGENT,
+            user_agent=user_agent,
             viewport=VIEWPORT
         )
 
