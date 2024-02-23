@@ -235,7 +235,7 @@ class Schwab(SessionManager):
             stop_price (number) -  The stop price to set with the order, if necessary.
             primary_security_type (int) - The type of the security being traded.
                         46 - For stocks and funds.
-                        48 - For options: recommend using option_trade_v2()
+                        48 - For options. For option strategies, use option_trade_v2()
             valid_return_codes (set) - Schwab returns an orderReturnCode in the response to both
                         the verification and execution requests, and it appears to be the
                         "severity" for the highest severity message.
