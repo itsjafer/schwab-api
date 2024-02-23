@@ -1,7 +1,7 @@
 from schwab_api import Schwab, options
 from dotenv import load_dotenv
 import os
-import pprint
+import pandas as pd
 
 load_dotenv()
 
@@ -42,20 +42,14 @@ print(f"Selecting Strike: {Strikes[0][5]} of Root {Roots[0]}")
 OptionTickers = options.generate_option_symbol(Roots[0],Dates[2],Strikes[0][5],"Call")
 print(f"option ticker for $RUT with expiration {Dates[2].strftime('%m/%d/%Y')} at strike price {Strikes[0][5]}: {OptionTickers}")
 
-df = pd.json_normalize(r['Expirations'], 
-                     meta=[['ExpirationGroup','RootSymbol'],
-                           ['ExpirationGroup', 'MonthAndDay'],
-                           ['ExpirationGroup', 'Year'],
-                           ['ExpirationGroup', 'Day'],
-                           ['ExpirationGroup', 'SettlementType'],
-                           ['ExpirationGroup','DaysUntil'],
-                           ['Chains','SymbolGroup'],
-                           ['Chains','Legs','Sym'],
-                           ['Chains','Legs','OptionType'],
-                           ['Chains','Legs','Strk'],
-                           ['Chains','Legs','Bid'],
-                           ['Chains','Legs','Ask'],
-                           ['Chains','Legs','Vol'],
-                           ['Chains','Legs','BidSize'],
-                           ['Chains','Legs','AskSize']
-                           ])
+OptionChain = api.get_options_chains_v2('$RUT',[Dates[0],Dates[1]], greeks=True)
+
+#normalizing the data into a pandas DataFrame
+df1 = pd.json_normalize(OptionChain,['Expirations','Chains','Legs'],[['Expirations','ExpirationGroup']])
+df2 = pd.json_normalize(df1['Expirations.ExpirationGroup'])
+df1.drop('Expirations.ExpirationGroup',axis=1, inplace=True)
+df = pd.concat([df1,df2],axis=1)
+#convert strings to numbers when relevant.
+df = df.apply(lambda col: pd.to_numeric(col, errors='coerce')).fillna(df)
+
+#Happy coding!!
