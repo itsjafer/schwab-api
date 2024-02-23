@@ -236,6 +236,7 @@ class Schwab(SessionManager):
             primary_security_type (int) - The type of the security being traded.
                         46 - For stocks and funds.
                         48 - For options. For option strategies, use option_trade_v2()
+                        49 - For mutual fund - not supported. Requires different parameters.
             valid_return_codes (set) - Schwab returns an orderReturnCode in the response to both
                         the verification and execution requests, and it appears to be the
                         "severity" for the highest severity message.
@@ -410,12 +411,30 @@ class Schwab(SessionManager):
             Option trading requires an application and approval process at Schwab.
             
             strategy (int) - Type of options strategy:
-                        203 - calendar call spread
-                        204 - calendar put spread
+                        2 leg strategies:
+                        201 - vertical call spread
+                        202 - vertical put spread
+                        203 - calendar call spread (level 3)
+                        204 - calendar put spread (level 3)
+                        205 - diagonal call spread 
+                        206 - diagonal put spread
+                        207 - ratio call spread (level 3)
+                        208 - ratio put spread (level 3)
+                        217 - custom 2 legs:
+                        3 leg strategies:
                         209 - Butterfly call spread
+                        210 - Butterfly put spread
+                        218 - custom 3 legs
+                        4 leg strategies:
                         211 - condor call spread
                         212 - condor put spread
                         214 - iron condor
+                        219 - custom 4 legs
+                        
+                        226 - straddle
+                        227 - strangle
+                        
+                        
             symbols (list of str) - List of the contracts you want to trade, each element being a leg of the trade,
             instructions (list str) - is a list containing the instructions for each leg
                         "BTO" - Buy to open
