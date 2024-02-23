@@ -430,7 +430,7 @@ class Schwab(SessionManager):
                         212 - condor put spread
                         214 - iron condor
                         219 - custom 4 legs
-                        
+                        Combinations:
                         226 - straddle
                         227 - strangle
                         
