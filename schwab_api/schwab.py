@@ -391,17 +391,16 @@ class Schwab(SessionManager):
     def option_trade_v2(self,
         strategy,
         symbols,
-        side,
-        qty,
+        instructions,
+        quantities,
         account_id,
-        dry_run=True,
         order_type,
+        dry_run=True,
         duration=48,
         limit_price=0,
         stop_price=0,
         valid_return_codes = {0,10},
-        affirm_order=False,
-        costBasis='FIFO'
+        affirm_order=False
         ):
         
         """
