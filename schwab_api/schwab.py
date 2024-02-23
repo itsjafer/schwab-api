@@ -507,7 +507,7 @@ class Schwab(SessionManager):
               "OrderStrategy": {
                 "PrimarySecurityType": 48,
                 "CostBasisRequest": null,
-                "OrderType": order_type,
+                "OrderType": str(order_type),
                 "Duration": str(duration),
                 "LimitPrice": str(limit_price),
                 "StopPrice": str(stop_price),
