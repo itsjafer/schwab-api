@@ -234,6 +234,8 @@ class Schwab(SessionManager):
             limit_price (number) - The limit price to set with the order, if necessary.
             stop_price (number) -  The stop price to set with the order, if necessary.
             primary_security_type (int) - The type of the security being traded.
+                        46 - For stocks and funds.
+                        48 - For options: recommend using option_trade_v2()
             valid_return_codes (set) - Schwab returns an orderReturnCode in the response to both
                         the verification and execution requests, and it appears to be the
                         "severity" for the highest severity message.
@@ -306,7 +308,6 @@ class Schwab(SessionManager):
                 "AccountColor":0
             },
             "OrderStrategy": {
-                # Unclear what the security types map to.
                 "PrimarySecurityType":primary_security_type,
                 "CostBasisRequest": {
                     "costBasisMethod":costBasis,
@@ -349,6 +350,184 @@ class Schwab(SessionManager):
         messages = list()
         if limit_price_warning is not None:
             messages.append(limit_price_warning)
+        for message in response["orderStrategy"]["orderMessages"]:
+            messages.append(message["message"])
+
+        # TODO: This needs to be fleshed out and clarified.
+        if response["orderStrategy"]["orderReturnCode"] not in valid_return_codes:
+            return messages, False
+
+        if dry_run:
+            return messages, True
+
+        # Make the same POST request, but for real this time.
+        data["UserContext"]["CustomerId"] = 0
+        data["OrderStrategy"]["OrderId"] = int(orderId)
+        data["OrderProcessingControl"] = 2
+        if affirm_order:
+            data["OrderStrategy"]["OrderAffrmIn"] = True
+        self.update_token(token_type='update')
+        r = requests.post(urls.order_verification_v2(), json=data, headers=self.headers)
+
+        if r.status_code != 200:
+            return [r.text], False
+
+        response = json.loads(r.text)
+
+        messages = list()
+        if limit_price_warning is not None:
+            messages.append(limit_price_warning)
+        if "orderMessages" in response["orderStrategy"] and response["orderStrategy"]["orderMessages"] is not None:
+            for message in response["orderStrategy"]["orderMessages"]:
+                messages.append(message["message"])
+
+        if response["orderStrategy"]["orderReturnCode"] in valid_return_codes:
+            return messages, True
+
+        return messages, False
+
+
+    def option_trade_v2(self,
+        strategy,
+        symbols,
+        side,
+        qty,
+        account_id,
+        dry_run=True,
+        order_type,
+        duration=48,
+        limit_price=0,
+        stop_price=0,
+        valid_return_codes = {0,10},
+        affirm_order=False,
+        costBasis='FIFO'
+        ):
+        
+        """
+            Disclaimer:
+            Use at own risk.
+            Make sure you understand what you are doing when trading options and using this function.
+            Option trading requires an application and approval process at Schwab.
+            
+            strategy (int) - Type of options strategy:
+                        203 - calendar call spread
+                        204 - calendar put spread
+                        209 - Butterfly call spread
+                        211 - condor call spread
+                        212 - condor put spread
+                        214 - iron condor
+            symbols (list of str) - List of the contracts you want to trade, each element being a leg of the trade,
+            instructions (list str) - is a list containing the instructions for each leg
+                        "BTO" - Buy to open
+                        "BTC" - Buy to close
+                        "STO" - Sell to open
+                        "STC" - Sell to close
+            quantities (list int) - The amount of contracts to buy/sell for each symbol / contract,
+            account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
+                        we're looking for just XXXXXXXX.
+            order_type (int) - The order type. This is a Schwab-specific number.
+                         49 - Market. Warning: Options are typically less liquid than stocks! limit orders strongly recommended!
+                        201 - Net credit. To be used in conjuncture with limit price.
+                        202 - Net debit. To be used in conjunture with limit price.
+            duration (int) - The duration type for the order. 
+                        48 - Day
+                        49 - GTC Good till canceled
+            limit_price (number) - The limit price to set with the order. Usage recommended.
+            stop_price (number) - The stop price to set with the order, if necessary.
+                        Not sure when to use this. Never tested.
+            valid_return_codes (set) - Schwab returns an orderReturnCode in the response to both
+                        the verification and execution requests, and it appears to be the
+                        "severity" for the highest severity message.
+                        Verification response messages with severity 10 include:
+                            - The market is now closed. This order will be placed for the next
+                              trading day
+                            - You are purchasing an ETF...please read the prospectus
+                            - It is your responsibility to choose the cost basis method
+                              appropriate to your tax situation
+                            - Quote at the time of order verification: $xx.xx
+                        Verification response messages with severity 20 include at least:
+                            - Insufficient settled funds (different from insufficient buying power)
+                        Verification response messages with severity 25 include at least:
+                            - This order is executable because the buy (or sell) limit is higher
+                              (lower) than the ask (bid) price.
+                        For the execution response, the orderReturnCode is typically 0 for a
+                        successfully placed order.
+                        Execution response messages with severity 30 include:
+                            - Order Affirmation required (This means Schwab wants you to confirm
+                              that you really meant to place this order as-is since something about
+                              it meets Schwab's criteria for requiring verification. This is
+                              usually analogous to a checkbox you would need to check when using
+                              the web interface)
+            affirm_order (bool) - Schwab requires additional verification for certain orders, such
+                        as when a limit order is executable, or when buying some commodity ETFs.
+                        Setting this to True will likely provide the verification needed to execute
+                        these orders. You will likely also have to include the appropriate return
+                        code in valid_return_codes.
+            Note: this function calls the new Schwab API, which is flakier and seems to have stricter authentication requirements.
+            For now, only use this function if the regular trade function doesn't work for your use case.
+
+            Returns messages (list of strings), is_success (boolean)
+        """
+        if not (len(quantities) == len(symbols) and len(symbols) == len(instructions)):
+            raise ValueError("variables quantities, symbols and instructions must have the same length")
+
+        instruction_code = {
+            "BTO": "201",
+            "BTC": "202",
+            "STO": "203",
+            "STC": "204"
+        }
+        instruction_codes = [instruction_code[i] for i in instructions]
+
+        self.update_token(token_type='update')
+
+        data = {
+              "UserContext": {
+                "AccountId": str(account_id),
+                "AccountColor": 0
+              },
+              "OrderStrategy": {
+                "PrimarySecurityType": 48,
+                "CostBasisRequest": null,
+                "OrderType": order_type,
+                "Duration": str(duration),
+                "LimitPrice": str(limit_price),
+                "StopPrice": str(stop_price),
+                "ReinvestDividend": false,
+                "MinimumQuantity": 0,
+                "AllNoneIn": False,
+                "DoNotReduceIn": False,
+                "Strategy": strategy,
+                "OrderStrategyType": 1,
+                "OrderLegs": [
+                    {
+                        "Quantity": str(qty),
+                        "LeavesQuantity": str(qty),
+                        "Instrument": {"Symbol": symbol},
+                        "SecurityType": 48,
+                        "Instruction": instruction
+                    } for qty, symbol, instruction in zip(quantities, symbols, instruction_codes)
+                    ]},
+            # OrderProcessingControl seems to map to verification vs actually placing an order.
+            "OrderProcessingControl": 1
+        }
+
+        # Adding this header seems to be necessary.
+        self.headers['schwab-resource-version'] = '1.0'
+
+        r = requests.post(urls.order_verification_v2(), json=data, headers=self.headers)
+        if r.status_code != 200:
+            return [r.text], False
+
+        response = json.loads(r.text)
+
+        orderId = response['orderStrategy']['orderId']
+        for i in range(len(symbols)):
+            OrderLeg = response['orderStrategy']['orderLegs'][i]
+            if "schwabSecurityId" in OrderLeg:
+                data["OrderStrategy"]["OrderLegs"][i]["Instrument"]["ItemIssueId"] = OrderLeg["schwabSecurityId"]
+
+        messages = list()
         for message in response["orderStrategy"]["orderMessages"]:
             messages.append(message["message"])
 
