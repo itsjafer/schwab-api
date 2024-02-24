@@ -402,7 +402,6 @@ class Schwab(SessionManager):
         valid_return_codes = {0,10},
         affirm_order=False
         ):
-        
         """
             Disclaimer:
             Use at own risk.
@@ -432,8 +431,6 @@ class Schwab(SessionManager):
                         Combinations:
                         226 - straddle
                         227 - strangle
-                        
-                        
             symbols (list of str) - List of the contracts you want to trade, each element being a leg of the trade,
             instructions (list str) - is a list containing the instructions for each leg
                         "BTO" - Buy to open
@@ -506,12 +503,12 @@ class Schwab(SessionManager):
               },
               "OrderStrategy": {
                 "PrimarySecurityType": 48,
-                "CostBasisRequest": null,
+                "CostBasisRequest": None,
                 "OrderType": str(order_type),
                 "Duration": str(duration),
                 "LimitPrice": str(limit_price),
                 "StopPrice": str(stop_price),
-                "ReinvestDividend": false,
+                "ReinvestDividend": False,
                 "MinimumQuantity": 0,
                 "AllNoneIn": False,
                 "DoNotReduceIn": False,
@@ -768,22 +765,26 @@ class Schwab(SessionManager):
         is_success = r.status_code in [200, 207]
         return is_success, (is_success and json.loads(r.text) or r.text)
 
-    def get_options_chains_v2(self, ticker, ExpirationDates, greeks = False):
+    def get_options_chains_v2(self, ticker, greeks = False):
         """
-        get_options_chains_v2 takes a ticker, a list of expiration dates and returns option chains information through the Schwab API.
+             Please do not abuse this API call. It is pulling all the option chains for a ticker.
+             It's not reverse engineered to the point where you can narrow it down to a range of strike prices and expiration dates.
+             To look up an individual symbol's quote, prefer using quote_v2().
+        
+             ticker (str) - ticker of the underlying security
+             greeks (bool) - if greeks is true, you will also get the option greeks (Delta, Theta, Gamma etc... )
         """
         expiration_date = []
-        for date in ExpirationDates:
+        #for date in ExpirationDates:
             # using python format to remove leading 0 for month and day.
             # datetime.strftime leaves leading 0 and removing them is different for Unix and Windows.
-            formatted_date = '{dt.month}/{dt.day}/{dt.year}'.format(dt = date)
-            expiration_date.append(formatted_date)
+        #    formatted_date = '{dt.month}/{dt.day}/{dt.year}'.format(dt = date)
+        #    expiration_date.append(formatted_date)
         data = {
             "Symbol":ticker,
-            "ExpirationDates": ",".join(expiration_date),
             "IncludeGreeks": "true" if greeks else "false"
         }
-
+        
         full_url= urllib.parse.urljoin(urls.option_chains_v2(), '?' + urllib.parse.urlencode(data))
 
         # Adding this header seems to be necessary.
@@ -795,21 +796,6 @@ class Schwab(SessionManager):
             return [r.text], False
 
         response = json.loads(r.text)
-        return response
-
-    def get_option_series_v2(self, ticker):
-        """
-        get_options_series_v2 takes a ticker and returns option series information such as strike prices, expiration dates and corresponding option symbols through the Schwab API.
-        """
-
-        r = requests.get(urls.option_series_v2()+ticker+".txt")
-        if r.status_code != 200:
-            return [r.text], False
-        #removing the first and last line to extract the json text
-        text = '\n'.join(r.text.split('\n')[1:-2])
-        #converting to json object
-        response = json.loads(text)
-        
         return response
 
     def update_token(self, token_type='api'):

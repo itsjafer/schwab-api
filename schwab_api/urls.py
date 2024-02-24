@@ -36,10 +36,6 @@ def lot_details_v2():
 def option_chains_v2():
     return "https://ausgateway.schwab.com/api/is.CSOptionChainsWeb/v1/OptionChainsPort/OptionChains/chains"
 
-#doesn't seem to be part of the api but is required to know available option series.
-def option_series_v2():
-    return "https://client.schwab.com/symlup/OptionsCwp/Underlying/"
-
 # Old API
 def positions_data():
     return "https://client.schwab.com/api/PositionV2/PositionsDataV2"
