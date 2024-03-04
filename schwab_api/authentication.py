@@ -134,63 +134,67 @@ class SessionManager:
         :returns: True if login was successful and no further action is needed or False
             if login requires additional steps (i.e. SMS)
         """
-        
-        # Log in to schwab using Playwright
-        with self.page.expect_navigation():
-            self.page.goto("https://www.schwab.com/")
+        if self.use_async:
+            result = asyncio.run(self.async_login(username, password, totp_secret))
+            return result
 
-
-        # Capture authorization token.
-        self.page.route(re.compile(r".*balancespositions*"), self.captureAuthToken)
-
-        # Wait for the login frame to load
-        login_frame = "schwablmslogin"
-        self.page.wait_for_selector("#" + login_frame)
-
-        self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
-
-        # Fill username
-        self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
-        self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", username)
-        
-        # Add TOTP to password
-        if totp_secret is not None:
-            totp = pyotp.TOTP(totp_secret)
-            password += str(totp.now())
-
-        # Fill password
-        self.page.frame(name=login_frame).press("[placeholder=\"Login ID\"]", "Tab")
-        self.page.frame(name=login_frame).fill("[placeholder=\"Password\"]", password)
-
-        # Submit
-        try:
+        else:
+            # Log in to schwab using Playwright
             with self.page.expect_navigation():
-                self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
-        except TimeoutError:
-            raise Exception("Login was not successful; please check username and password")
-
-        # NOTE: THIS FUNCTIONALITY WILL SOON BE UNSUPPORTED/DEPRECATED.
-        if self.page.url != urls.trade_ticket():
-            # We need further authentication, so we'll send an SMS
-            print("Authentication state is not available. We will need to go through two factor authentication.")
-            print("You should receive a code through SMS soon")
-
-            # Send an SMS. The UI is inconsistent so we'll try both.
+                self.page.goto("https://www.schwab.com/")
+    
+    
+            # Capture authorization token.
+            self.page.route(re.compile(r".*balancespositions*"), self.captureAuthToken)
+    
+            # Wait for the login frame to load
+            login_frame = "schwablmslogin"
+            self.page.wait_for_selector("#" + login_frame)
+    
+            self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
+    
+            # Fill username
+            self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
+            self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", username)
+            
+            # Add TOTP to password
+            if totp_secret is not None:
+                totp = pyotp.TOTP(totp_secret)
+                password += str(totp.now())
+    
+            # Fill password
+            self.page.frame(name=login_frame).press("[placeholder=\"Login ID\"]", "Tab")
+            self.page.frame(name=login_frame).fill("[placeholder=\"Password\"]", password)
+    
+            # Submit
             try:
                 with self.page.expect_navigation():
-                    self.page.click("[aria-label=\"Text me a 6 digit security code\"]")
-            except:
-                self.page.click("input[name=\"DeliveryMethodSelection\"]")
-                self.page.click("text=Text Message")
-                self.page.click("input:has-text(\"Continue\")")
-            return False
-
-        self.page.wait_for_selector("#_txtSymbol")
-
-        # Save our session
-        self.save_and_close_session()
-
-        return True
+                    self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
+            except TimeoutError:
+                raise Exception("Login was not successful; please check username and password")
+    
+            # NOTE: THIS FUNCTIONALITY WILL SOON BE UNSUPPORTED/DEPRECATED.
+            if self.page.url != urls.trade_ticket():
+                # We need further authentication, so we'll send an SMS
+                print("Authentication state is not available. We will need to go through two factor authentication.")
+                print("You should receive a code through SMS soon")
+    
+                # Send an SMS. The UI is inconsistent so we'll try both.
+                try:
+                    with self.page.expect_navigation():
+                        self.page.click("[aria-label=\"Text me a 6 digit security code\"]")
+                except:
+                    self.page.click("input[name=\"DeliveryMethodSelection\"]")
+                    self.page.click("text=Text Message")
+                    self.page.click("input:has-text(\"Continue\")")
+                return False
+    
+            self.page.wait_for_selector("#_txtSymbol")
+    
+            # Save our session
+            self.save_and_close_session()
+    
+            return True
 
     async def async_login(self, username, password, totp_secret=None):
         """ This function will log the user into schwab using asynchoneous Playwright and saving
