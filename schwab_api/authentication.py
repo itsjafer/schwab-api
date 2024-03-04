@@ -3,6 +3,9 @@ import pyotp
 import re
 from . import urls
 
+import asyncio
+from playwright.async_api import async_playwright, TimeoutError as AsyncTimeoutError
+from playwright_stealth import stealth_async
 from playwright.sync_api import sync_playwright, TimeoutError
 from requests.cookies import cookiejar_from_dict
 from playwright_stealth import stealth_sync
@@ -13,32 +16,69 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:{version}) Gecko/2010
 VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
-    def __init__(self) -> None:
+    def __init__(self, use_async=False) -> None:
+        """ This class can be used in synchonized or asynchronized mode. Some cloud services may required to use Playwright in asynchonized mode.
+        :type async: boolean
+        :param async: authentification in synchonous or asynchonous mode.
+        """
+        self.use_async = use_async
         self.headers = None
         self.session = requests.Session()
 
-        self.playwright = sync_playwright().start()
-        if self.browserType == "firefox":
-            self.browser = self.playwright.firefox.launch(
-                headless=self.headless
+        if not use_async:
+            self.playwright = sync_playwright().start()
+            if self.browserType == "firefox":
+                self.browser = self.playwright.firefox.launch(
+                    headless=self.headless
+                )
+            else:
+                #webkit doesn't or no longer works when trying to log in.
+                raise ValueError("Only supported browserType is 'firefox'")
+
+            user_agent = USER_AGENT + self.browser.version
+            self.page = self.browser.new_page(
+                user_agent=user_agent,
+                viewport=VIEWPORT
             )
+    
+            stealth_sync(self.page)
         else:
-            #webkit doesn't or no longer works when trying to log in.
-            raise ValueError("Only supported browserType is 'firefox'")
+            self.playwright = None
+            self.browser = None
+            self.page = None
 
-        user_agent = USER_AGENT + self.browser.version
-        self.page = self.browser.new_page(
-            user_agent=user_agent,
-            viewport=VIEWPORT
-        )
+    async def async_init(self):
+        if self.use_async:
+            self.playwright = await async_playwright().start()
+            if self.browserType == "firefox":
+                self.browser = await self.playwright.firefox.launch(
+                    headless=self.headless
+                )
+            else:
+               #webkit doesn't or no longer works when trying to log in.
+                raise ValueError("Only supported browserType is 'firefox'")
 
-        stealth_sync(self.page)
+            user_agent = USER_AGENT + self.browser.version
+            self.page = await self.browser.new_page(
+                user_agent=USER_AGENT,
+                viewport=VIEWPORT
+            )
+            await stealth_async(self.page)
+        else:
+            print("async_init() method called without setting use_async to True in SessionManager.")
 
     def check_auth(self):
         r = self.session.get(urls.account_info_v2())
         if r.status_code != 200:
             return False
         return True
+
+    async def async_save_and_close_session(self):
+        cookies = {cookie["name"]: cookie["value"] for cookie in await self.page.context.cookies()}
+        self.session.cookies = cookiejar_from_dict(cookies)
+        await self.page.close()
+        await self.browser.close()
+        await self.playwright.stop()
 
     def save_and_close_session(self):
         cookies = {cookie["name"]: cookie["value"] for cookie in self.page.context.cookies()}
@@ -72,6 +112,10 @@ class SessionManager:
     def captureAuthToken(self, route):
             self.headers = route.request.all_headers()
             route.continue_()
+
+    async def asyncCaptureAuthToken(self, route):
+        self.headers = await route.request.all_headers()
+        await route.continue_()
     
     def login(self, username, password, totp_secret=None):
         """ This function will log the user into schwab using Playwright and saving
@@ -146,4 +190,53 @@ class SessionManager:
         # Save our session
         self.save_and_close_session()
 
+        return True
+
+    async def async_login(self, username, password, totp_secret=None):
+        """ This function will log the user into schwab using asynchoneous Playwright and saving
+        the authentication cookies in the session header. 
+        :type username: str
+        :param username: The username for the schwab account.
+
+        :type password: str
+        :param password: The password for the schwab account/
+
+        :type totp_secret: Optional[str]
+        :param totp_secret: The TOTP secret used to complete multi-factor authentication 
+            through Symantec VIP. SMS is not supported for asynchoneous login.
+
+        :rtype: boolean
+        :returns: True if login was successful and no further action is needed or False
+            if login requires additional steps (i.e. SMS)
+        """
+        await self.async_init()
+        await self.page.goto("https://www.schwab.com/")
+
+        await self.page.route(re.compile(r".*balancespositions*"), self.asyncCaptureAuthToken)
+
+        login_frame = "schwablmslogin"
+        await self.page.wait_for_selector("#" + login_frame)
+
+        await self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
+
+        await self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
+        await self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", username)
+
+        if totp_secret is not None:
+            totp = pyotp.TOTP(totp_secret)
+            password += str(totp.now())
+
+        await self.page.frame(name=login_frame).press("[placeholder=\"Login ID\"]", "Tab")
+        await self.page.frame(name=login_frame).fill("[placeholder=\"Password\"]", password)
+
+        try:
+            await self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
+            await self.page.wait_for_url(urls.trade_ticket())
+        except AsyncTimeoutError:
+            raise Exception("Login was not successful; please check username and password")
+            return False
+
+        await self.page.wait_for_selector("#_txtSymbol")
+
+        await self.async_save_and_close_session()
         return True
