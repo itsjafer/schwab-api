@@ -10,7 +10,9 @@ password = os.getenv("SCHWAB_PASSWORD")
 totp_secret = os.getenv("SCHWAB_TOTP")
 
 # Initialize our schwab instance
-api = Schwab()
+api = Schwab() 
+# Note: for asynchronous use 
+# api = Schwab(use_async=True)
 
 # Login using playwright
 print("Logging into Schwab")
