@@ -774,12 +774,6 @@ class Schwab(SessionManager):
              ticker (str) - ticker of the underlying security
              greeks (bool) - if greeks is true, you will also get the option greeks (Delta, Theta, Gamma etc... )
         """
-        expiration_date = []
-        #for date in ExpirationDates:
-            # using python format to remove leading 0 for month and day.
-            # datetime.strftime leaves leading 0 and removing them is different for Unix and Windows.
-        #    formatted_date = '{dt.month}/{dt.day}/{dt.year}'.format(dt = date)
-        #    expiration_date.append(formatted_date)
         data = {
             "Symbol":ticker,
             "IncludeGreeks": "true" if greeks else "false"
