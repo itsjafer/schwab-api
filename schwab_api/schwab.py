@@ -8,14 +8,14 @@ from .account_information import Position, Account
 from .authentication import SessionManager
 
 class Schwab(SessionManager):
-    def __init__(self, **kwargs):
+    def __init__(self, use_async=False, **kwargs):
         """
             The Schwab class. Used to interact with schwab.
 
         """
         self.headless = kwargs.get("headless", True)
         self.browserType = kwargs.get("browserType", "firefox")
-        super(Schwab, self).__init__()
+        super(Schwab, self).__init__(use_async)
 
     def get_account_info(self):
         """
