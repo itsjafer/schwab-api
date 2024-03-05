@@ -29,6 +29,7 @@ jobs:
           python -m pip install playwright-stealth
           python -m pip install pyotp
           python -m pip install python-vipaccess
+          python -m pip install python-dotenv
           python -m playwright install firefox
       - name: run test
         env:
