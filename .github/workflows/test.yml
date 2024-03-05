@@ -34,4 +34,7 @@ jobs:
       - name: run test
         env:
           PYTHONPATH: ${{ github.workspace }}
+          SCHWAB_USERNAME: ${{ secrets.SCHWAB_USERNAME }}
+          SCHWAB_PASSWORD: ${{ secrets.SCHWAB_PASSWORD }}
+          SCHWAB_TOTP: ${{ secrets.SCHWAB_TOTP }}
         run: python example/example.py
