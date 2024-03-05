@@ -55,7 +55,7 @@ class SessionManager:
                     headless=self.headless
                 )
             else:
-               #webkit doesn't or no longer works when trying to log in.
+               # Webkit doesn't or no longer works when trying to log in.
                 raise ValueError("Only supported browserType is 'firefox'")
 
             user_agent = USER_AGENT + self.browser.version
