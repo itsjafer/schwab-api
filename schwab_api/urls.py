@@ -33,6 +33,9 @@ def transaction_history_v2():
 def lot_details_v2():
     return "https://ausgateway.schwab.com/api/is.Holdings/V1/Lots"
 
+def option_chains_v2():
+    return "https://ausgateway.schwab.com/api/is.CSOptionChainsWeb/v1/OptionChainsPort/OptionChains/chains"
+
 # Old API
 def positions_data():
     return "https://client.schwab.com/api/PositionV2/PositionsDataV2"
