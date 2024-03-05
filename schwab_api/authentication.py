@@ -17,7 +17,7 @@ VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
     def __init__(self, use_async=False) -> None:
-        """ This class can be used in synchonized or asynchronized mode. Some cloud services may required to use Playwright in asynchonized mode.
+        """ This class can be used in synchonous or asynchonous mode. Some cloud services may require to use Playwright in asynchonous mode.
         :type async: boolean
         :param async: authentification in synchonous or asynchonous mode.
         """
@@ -139,7 +139,7 @@ class SessionManager:
             return result
 
         else:
-            # Log in to schwab using Playwright
+            # Log in to schwab using Playwright (synchonous)
             with self.page.expect_navigation():
                 self.page.goto("https://www.schwab.com/")
     
