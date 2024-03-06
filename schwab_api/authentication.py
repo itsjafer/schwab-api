@@ -15,9 +15,8 @@ VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
     def __init__(self) -> None:
-        """ This class can be used in synchonous or asynchonous mode. Some cloud services may require to use Playwright in asynchonous mode.
-        :type async: boolean
-        :param async: authentification in synchonous or asynchonous mode.
+        """ 
+        This class is using asynchonous playwright mode. 
         """
         self.headers = None
         self.session = requests.Session()
