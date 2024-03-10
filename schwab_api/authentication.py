@@ -67,7 +67,7 @@ class SessionManager:
 
         user_agent = USER_AGENT + self.browser.version
         self.page = await self.browser.new_page(
-            user_agent=USER_AGENT,
+            user_agent=user_agent,
             viewport=VIEWPORT
         )
         await stealth_async(self.page)
