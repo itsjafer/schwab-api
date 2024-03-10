@@ -96,7 +96,6 @@ class SessionManager:
             await self.page.wait_for_url(urls.trade_ticket())
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
-            return False
 
         await self.page.wait_for_selector("#_txtSymbol")
 
