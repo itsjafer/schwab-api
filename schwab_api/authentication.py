@@ -1,3 +1,4 @@
+import json
 import requests
 import pyotp
 import re
@@ -15,8 +16,8 @@ VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
     def __init__(self) -> None:
-        """ 
-        This class is using asynchonous playwright mode. 
+        """
+        This class is using asynchronous playwright mode.
         """
         self.headers = None
         self.session = requests.Session()
@@ -32,10 +33,11 @@ class SessionManager:
 
     def get_session(self):
         return self.session
-    
+
     def login(self, username, password, totp_secret=None):
         """ This function will log the user into schwab using asynchronous Playwright and saving
-        the authentication cookies in the session header. 
+        the authentication cookies in the session header.
+
         :type username: str
         :param username: The username for the schwab account.
 
@@ -43,16 +45,27 @@ class SessionManager:
         :param password: The password for the schwab account/
 
         :type totp_secret: Optional[str]
-        :param totp_secret: The TOTP secret used to complete multi-factor authentication 
+        :param totp_secret: The TOTP secret used to complete multi-factor authentication
             through Symantec VIP. If this isn't given, sign in will use SMS.
 
         :rtype: boolean
         :returns: True if login was successful and no further action is needed or False
             if login requires additional steps (i.e. SMS - no longer supported)
         """
+        if self._load_session_cache():
+            return True
+
         result = asyncio.run(self._async_login(username, password, totp_secret))
         return result
-    
+
+    def update_token(self, token_type='api'):
+        r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
+        if not r.ok:
+            raise ValueError(f"Error updating Bearer token: {r.reason}")
+        token = json.loads(r.text)['token']
+        self.headers['authorization'] = f"Bearer {token}"
+        self._load_session_cache()
+
     async def _async_login(self, username, password, totp_secret=None):
         """ This function runs in async mode to perform login.
         Use with login function. See login function for details.
@@ -71,7 +84,7 @@ class SessionManager:
             viewport=VIEWPORT
         )
         await stealth_async(self.page)
-        
+
         await self.page.goto("https://www.schwab.com/")
 
         await self.page.route(re.compile(r".*balancespositions*"), self._asyncCaptureAuthToken)
@@ -108,7 +121,32 @@ class SessionManager:
         await self.page.close()
         await self.browser.close()
         await self.playwright.stop()
-    
+        self._save_session_cache()
+
     async def _asyncCaptureAuthToken(self, route):
         self.headers = await route.request.all_headers()
         await route.continue_()
+
+    def _load_session_cache(self):
+        if self.session_cache:
+            try:
+                with open(self.session_cache) as f:
+                    data = f.read()
+                    session = json.loads(data)
+                    self.session.cookies = cookiejar_from_dict(session['cookies'])
+                    self.headers = session['headers']
+                    return True
+            except:
+                # swallow exceptions
+                pass
+
+        return False
+
+    def _save_session_cache(self):
+        if self.session_cache:
+            with open(self.session_cache, 'w') as f:
+                session = {
+                    'cookies': self.session.cookies,
+                    'headers': self.headers
+                }
+                json.dump(session, f)
