@@ -6,7 +6,7 @@ def account_summary():
     return "https://client.schwab.com/clientapps/accounts/summary/"
 
 def trade_ticket():
-    return "https://client.schwab.com/app/trade/tom/#/trade"
+    return "https://client.schwab.com/app/trade/tom/trade?ShowUN=YES"
 
 # New API
 def order_verification_v2():
