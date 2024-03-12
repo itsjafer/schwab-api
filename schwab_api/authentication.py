@@ -34,7 +34,7 @@ class SessionManager:
         return self.session
     
     def login(self, username, password, totp_secret=None):
-        """ This function will log the user into schwab using asynchoneous Playwright and saving
+        """ This function will log the user into schwab using asynchronous Playwright and saving
         the authentication cookies in the session header. 
         :type username: str
         :param username: The username for the schwab account.
@@ -93,7 +93,7 @@ class SessionManager:
 
         try:
             await self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
-            await self.page.wait_for_url(urls.trade_ticket())
+            await self.page.wait_for_url(".*app/trade.*") # Making it more robust than specigying an exact url which may change.
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
 
