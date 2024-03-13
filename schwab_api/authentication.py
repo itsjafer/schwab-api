@@ -93,7 +93,7 @@ class SessionManager:
 
         try:
             await self.page.frame(name=login_frame).press("[placeholder=\"Password\"]", "Enter")
-            await self.page.wait_for_url(re.compile(r"app/trade"), wait_until="domcontentloaded") # Making it more robust than specigying an exact url which may change.
+            await self.page.wait_for_url(re.compile(r"app/trade"), wait_until="domcontentloaded") # Making it more robust than specifying an exact url which may change.
         except TimeoutError:
             raise Exception("Login was not successful; please check username and password")
 
