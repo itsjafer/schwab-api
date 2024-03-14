@@ -15,6 +15,7 @@ This package enables buying and selling securities programmatically on Charles S
 * Limit / Stop orders are possible using trade_v2 parameters
 * Multiple individual account support
 * MFA and TOTP authentication
+* Async compatibility
 * Web Request implementation (with the exception of authentication)
 
 ## Live Demo
