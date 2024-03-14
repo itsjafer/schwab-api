@@ -1,0 +1,35 @@
+name: Test async
+
+jobs:
+  scheduled:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout repo
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.11
+      - uses: actions/cache@v2
+        name: Configure pip caching
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m pip install playwright-stealth
+          python -m pip install pyotp
+          python -m pip install python-vipaccess
+          python -m pip install python-dotenv
+          python -m playwright install firefox
+      - name: run test
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          SCHWAB_USERNAME: ${{ secrets.SCHWAB_USERNAME }}
+          SCHWAB_PASSWORD: ${{ secrets.SCHWAB_PASSWORD }}
+          SCHWAB_TOTP: ${{ secrets.SCHWAB_TOTP }}
+        run: python example/example.py
