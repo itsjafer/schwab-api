@@ -1,5 +1,8 @@
-name: Test async
-
+name: Basic Example Test
+on:
+  push:
+    branches:
+      - main
 jobs:
   scheduled:
     runs-on: ubuntu-latest
