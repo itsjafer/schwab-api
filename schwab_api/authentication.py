@@ -1,3 +1,4 @@
+import hashlib
 import json
 import requests
 import pyotp
@@ -25,6 +26,14 @@ class SessionManager:
         self.browser = None
         self.page = None
 
+        # cached credentials
+        self.username = None
+        self.username_hash = None
+        self.password = None
+        self.password_hash = None
+        self.totp_secret = None
+        self.totp_secret_hash = None
+
     def check_auth(self):
         r = self.session.get(urls.account_info_v2())
         if r.status_code != 200:
@@ -34,7 +43,7 @@ class SessionManager:
     def get_session(self):
         return self.session
 
-    def login(self, username, password, totp_secret=None):
+    def login(self, username, password, totp_secret):
         """ This function will log the user into schwab using asynchronous Playwright and saving
         the authentication cookies in the session header.
 
@@ -44,29 +53,60 @@ class SessionManager:
         :type password: str
         :param password: The password for the schwab account/
 
-        :type totp_secret: Optional[str]
+        :type totp_secret: str
         :param totp_secret: The TOTP secret used to complete multi-factor authentication
-            through Symantec VIP. If this isn't given, sign in will use SMS.
 
         :rtype: boolean
         :returns: True if login was successful and no further action is needed or False
             if login requires additional steps (i.e. SMS - no longer supported)
         """
-        if self._load_session_cache():
-            return True
+        # update credentials
+        self.username = username
+        self.password = password
+        self.totp_secret = totp_secret
 
-        result = asyncio.run(self._async_login(username, password, totp_secret))
+        # calculate hashes
+        username_hash = hashlib.md5(username.encode('utf-8')).hexdigest()
+        password_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
+        totp_secret_hash = hashlib.md5(totp_secret.encode('utf-8')).hexdigest()
+
+        # attempt to load cached session
+        if self._load_session_cache():
+            # check hashed credentials
+            if self.username_hash == username_hash and self.password_hash == password_hash and self.totp_secret_hash == totp_secret_hash:
+                print('hashed credentials okay')
+                try:
+                    if self.update_token():
+                        print('session okay')
+                        return True
+                except:
+                    print('update token failed')
+
+        # update hashed credentials
+        self.username_hash = username_hash
+        self.password_hash = password_hash
+        self.totp_secret_hash = totp_secret_hash
+
+        # attempt to login
+        result = asyncio.run(self._async_login())
         return result
 
-    def update_token(self, token_type='api'):
+    def update_token(self, token_type='api', login=True):
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
         if not r.ok:
-            raise ValueError(f"Error updating Bearer token: {r.reason}")
+            if login:
+                print("session invalid; logging in again")
+                result = asyncio.run(self._async_login())
+                return result
+            else:
+                raise ValueError(f"Error updating Bearer token: {r.reason}")
+
         token = json.loads(r.text)['token']
         self.headers['authorization'] = f"Bearer {token}"
-        self._load_session_cache()
+        self._save_session_cache()
+        return True
 
-    async def _async_login(self, username, password, totp_secret=None):
+    async def _async_login(self):
         """ This function runs in async mode to perform login.
         Use with login function. See login function for details.
         """
@@ -86,21 +126,21 @@ class SessionManager:
         await stealth_async(self.page)
 
         await self.page.goto("https://www.schwab.com/")
-
         await self.page.route(re.compile(r".*balancespositions*"), self._asyncCaptureAuthToken)
 
         login_frame = "schwablmslogin"
         await self.page.wait_for_selector("#" + login_frame)
-
         await self.page.frame(name=login_frame).select_option("select#landingPageOptions", index=3)
 
+        # enter username
         await self.page.frame(name=login_frame).click("[placeholder=\"Login ID\"]")
-        await self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", username)
+        await self.page.frame(name=login_frame).fill("[placeholder=\"Login ID\"]", self.username)
 
-        if totp_secret is not None:
-            totp = pyotp.TOTP(totp_secret)
-            password += str(totp.now())
+        # append otp to passsword
+        totp = pyotp.TOTP(self.totp_secret)
+        password = self.password + str(totp.now())
 
+        # enter password
         await self.page.frame(name=login_frame).press("[placeholder=\"Login ID\"]", "Tab")
         await self.page.frame(name=login_frame).fill("[placeholder=\"Password\"]", password)
 
@@ -135,6 +175,9 @@ class SessionManager:
                     session = json.loads(data)
                     self.session.cookies = cookiejar_from_dict(session['cookies'])
                     self.headers = session['headers']
+                    self.username_hash = session['username_hash']
+                    self.password_hash = session['password_hash']
+                    self.totp_secret_hash = session['totp_secret_hash']
                     return True
             except:
                 # swallow exceptions
@@ -146,7 +189,10 @@ class SessionManager:
         if self.session_cache:
             with open(self.session_cache, 'w') as f:
                 session = {
-                    'cookies': self.session.cookies,
-                    'headers': self.headers
+                    'cookies': self.session.cookies.get_dict(),
+                    'headers': self.headers,
+                    'username_hash': self.username_hash,
+                    'password_hash': self.password_hash,
+                    'totp_secret_hash': self.totp_secret_hash
                 }
                 json.dump(session, f)
