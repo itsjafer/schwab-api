@@ -16,7 +16,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:{version}) Gecko/2010
 VIEWPORT = { 'width': 1920, 'height': 1080 }
 
 class SessionManager:
-    def __init__(self) -> None:
+    def __init__(self, debug = False) -> None:
         """
         This class is using asynchronous playwright mode.
         """
@@ -25,6 +25,7 @@ class SessionManager:
         self.playwright = None
         self.browser = None
         self.page = None
+        self.debug = debug
 
         # cached credentials
         self.username = None
@@ -74,13 +75,14 @@ class SessionManager:
         if self._load_session_cache():
             # check hashed credentials
             if self.username_hash == username_hash and self.password_hash == password_hash and self.totp_secret_hash == totp_secret_hash:
-                print('hashed credentials okay')
+                if self.debug:
+                    print('hashed credentials okay')
                 try:
                     if self.update_token():
-                        print('session okay')
                         return True
                 except:
-                    print('update token failed')
+                    if self.debug:
+                        print('update token failed, falling back to login')
 
         # update hashed credentials
         self.username_hash = username_hash
@@ -95,7 +97,8 @@ class SessionManager:
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
         if not r.ok:
             if login:
-                print("session invalid; logging in again")
+                if self.debug:
+                    print("session invalid; logging in again")
                 result = asyncio.run(self._async_login())
                 return result
             else:
