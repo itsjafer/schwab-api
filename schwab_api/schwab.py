@@ -15,6 +15,7 @@ class Schwab(SessionManager):
         """
         self.headless = kwargs.get("headless", True)
         self.browserType = kwargs.get("browserType", "firefox")
+        self.session_cache = kwargs.get("session_cache", None)
         super(Schwab, self).__init__()
 
     def get_account_info(self):
@@ -789,10 +790,3 @@ class Schwab(SessionManager):
 
         response = json.loads(r.text)
         return response
-
-    def update_token(self, token_type='api'):
-        r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
-        if not r.ok:
-            raise ValueError(f"Error updating Bearer token: {r.reason}")
-        token = json.loads(r.text)['token']
-        self.headers['authorization'] = f"Bearer {token}"

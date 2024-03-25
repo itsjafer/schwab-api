@@ -10,7 +10,10 @@ password = os.getenv("SCHWAB_PASSWORD")
 totp_secret = os.getenv("SCHWAB_TOTP")
 
 # Initialize our schwab instance
-api = Schwab()
+api = Schwab(
+    # Optional session cache - uncomment to enable:
+    # session_cache="session.json"
+)
 
 # Login using playwright
 print("Logging into Schwab")
@@ -48,9 +51,9 @@ pprint.pprint(transaction_history)
 print("Placing a dry run trade for PFE stock")
 # Place a dry run trade for each account
 messages, success = api.trade_v2(
-    ticker="PFE", 
+    ticker="PFE",
     side="Buy", #or Sell
-    qty=1, 
+    qty=1,
     account_id=next(iter(account_info)), # Replace with your account number
     dry_run=True # If dry_run=True, we won't place the order, we'll just verify it.
 )
