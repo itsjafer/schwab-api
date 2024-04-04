@@ -204,38 +204,17 @@ class Schwab(SessionManager):
 
         return messages, False
 
-    def get_current_price(self, ticker):
-        with self.page.expect_navigation():
-            self.page.goto(urls.trade_page())
+    def get_current_price(self, ticker: str) -> float:
+        quotation = self.quote_v2([ticker])[0]
+        return float(sub(r'[^\d.]', '', quotation['quote']['last']))
 
-        self.page.click("#_txtSymbol")
-        self.page.fill("#_txtSymbol", ticker)
-        self.page.press("#_txtSymbol", "Enter")
-        self.page.press("#_txtSymbol", "Enter")
-
-        self.page.wait_for_selector("//span[@class='mcaio--last-price ']")
-        money = self.page.text_content("//span[@class='mcaio--last-price ']")
-        price = float(sub(r'[^\d.]', '', money))
-        return price
-
-    def get_available_funds(self, account_id):
-        with self.page.expect_navigation():
-            self.page.goto(urls.trade_page())
-
-        account_id_string = str(account_id)
-        button_label = "Account ending in %c %c %c" % (account_id_string[-3], account_id_string[-2],
-                                                       account_id_string[-1])
-        self.page.locator("#basic-example-small").click()
-        self.page.locator("//li[@class='sdps-account-selector__list-item']").get_by_label(button_label).click()
-        self.page.wait_for_timeout(1960)
-        self.page.wait_for_selector("//span[@class='mcaio-balances_total']")
-        money = self.page.text_content("//span[@class='mcaio-balances_total']")
-        funds = float(sub(r'[^\d.]', '', money))
-        return funds
+    def get_available_funds(self, account_id: int) -> float:
+        accounts = self.get_account_info_v2()
+        return accounts[account_id]["available_cash"]
 
     def rebalance(self, account_id: int, allocations: {}, set_aside=0.0, reinvest=True, tax_optimized_cost_basis=True,
-                  dry_run=True) -> ([str], True):
-        account_info = self.get_account_info()
+                  dry_run=True, sell_all_confirm=False) -> ([str], True):
+        account_info = self.get_account_info_v2()
         result_messages = []
         account = account_info[account_id]
         portfolio_value = account['account_value'] - set_aside
@@ -243,27 +222,34 @@ class Schwab(SessionManager):
         for position in account['positions']:
             current_shares[position['symbol']] = position['quantity']
 
-        total_allocation = 0.0
-        for symbol in allocations:
-            if allocations[symbol] < 0.0:
-                raise ValueError("Rebalance allocation for %s is less than zero." % symbol)
-            total_allocation += allocations[symbol]
-
         desired_shares = {}
-        prices = {}
-        lowest_price = 9999999.99
         cheapest = None
-        for symbol in allocations:
-            prices[symbol] = self.get_current_price(symbol)
-            if prices[symbol] < lowest_price:
-                lowest_price = prices[symbol]
-                cheapest = symbol
-            allocation = allocations[symbol] / total_allocation
-            desired_shares[symbol] = portfolio_value * allocation / prices[symbol]
-            if symbol in current_shares:
-                desired_shares[symbol] -= current_shares[symbol]
-                del current_shares[symbol]
-            desired_shares[symbol] = round(desired_shares[symbol])
+        if len(allocations) == 0:
+            if not sell_all_confirm:
+                return ['Attempting to rebalance with no allocations. '
+                        'If that is the intent, set sell_all_confirm to True.'], True
+        else:
+            total_allocation = 0.0
+            for symbol in allocations:
+                if allocations[symbol] < 0.0:
+                    raise ValueError("Rebalance allocation for %s is less than zero." % symbol)
+                total_allocation += allocations[symbol]
+
+            prices = {}
+            lowest_price = 999999999.99
+            quotations = self.quote_v2(list(allocations.keys()))
+            for quotation in quotations:
+                prices[(symbol := quotation['symbol'])] = float(sub(r'[^\d.]', '', quotation['quote']['last']))
+                if prices[symbol] < lowest_price:
+                    lowest_price = prices[symbol]
+                    cheapest = symbol
+            for symbol in allocations:
+                allocation = allocations[symbol] / total_allocation
+                desired_shares[symbol] = portfolio_value * allocation / prices[symbol]
+                if symbol in current_shares:
+                    desired_shares[symbol] -= current_shares[symbol]
+                    del current_shares[symbol]
+                desired_shares[symbol] = round(desired_shares[symbol])
 
         for symbol in current_shares:
             messages, success = self.sell(account_id, symbol, current_shares[symbol],
@@ -282,23 +268,24 @@ class Schwab(SessionManager):
                         return result_messages, success
                 del desired_shares[symbol]
 
-        purchase_order = sorted(desired_shares.items(), key=lambda i: prices[i[0]], reverse=True)
-        for item in purchase_order[:-1]:
-            messages, success = self.purchase(account_id, item[0], item[1], set_aside, reinvest=reinvest,
-                                              tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
-            result_messages += messages
-            if not success:
-                return result_messages, success
+        if len(allocations) > 0:
+            purchase_order = sorted(desired_shares.items(), key=lambda i: prices[i[0]], reverse=True)
+            for item in purchase_order[:-1]:
+                messages, success = self.purchase(account_id, item[0], item[1], set_aside, reinvest=reinvest,
+                                                  tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
+                result_messages += messages
+                if not success:
+                    return result_messages, success
+            if len(purchase_order) > 0:
+                messages, success = self.purchase(account_id, purchase_order[-1][0], None, set_aside, reinvest=reinvest,
+                                                  tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
+                result_messages += messages
 
-        messages, success = self.purchase(account_id, purchase_order[-1][0], None, set_aside, reinvest=reinvest,
-                                          tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
-        result_messages += messages
-
-        # If enough cash leftover, purchase the cheapest shares
-        if cheapest != purchase_order[-1][0]:
-            messages, success = self.purchase(account_id, cheapest, None, set_aside, reinvest=reinvest,
-                                              tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
-            result_messages += messages
+            # If enough cash leftover, purchase the cheapest shares
+            if len(purchase_order) > 0 and cheapest != purchase_order[-1][0]:
+                messages, success = self.purchase(account_id, cheapest, None, set_aside, reinvest=reinvest,
+                                                  tax_optimized_cost_basis=tax_optimized_cost_basis, dry_run=dry_run)
+                result_messages += messages
 
         return result_messages, success
 

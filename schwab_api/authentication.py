@@ -103,18 +103,12 @@ class SessionManager:
 
         await self.page.wait_for_selector("#_txtSymbol")
 
-        await self._async_save_session()
+        await self._async_save_and_close_session()
         return True
 
     async def _async_save_and_close_session(self):
-        await self._async_save_session()
-        await self.async_close_session()
-
-    async def _async_save_session(self):
         cookies = {cookie["name"]: cookie["value"] for cookie in await self.page.context.cookies()}
         self.session.cookies = cookiejar_from_dict(cookies)
-
-    async def async_close_session(self):
         await self.page.close()
         await self.browser.close()
         await self.playwright.stop()
