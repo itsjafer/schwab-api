@@ -67,6 +67,3 @@ def order_verification():
 def order_confirmation():
     return "https://client.schwab.com/api/ts/stamp/confirmorder"
 
-
-def trade_page():
-    return "https://client.schwab.com/app/trade/tom/#/trade"
