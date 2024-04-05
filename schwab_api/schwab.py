@@ -359,7 +359,7 @@ class Schwab(SessionManager):
                         we're looking for just XXXXXXXX.
             order_type (int) - The order type. This is a Schwab-specific number, and there exists types
                         beyond 49 (Market) and 50 (Limit). This parameter allows setting specific types
-                        for those willing to trial-and-error. For reference but not tested: 
+                        for those willing to trial-and-error. For reference but not tested:
                         49 - Market
                         50 - Limit
                         51 - Stop market
@@ -431,7 +431,7 @@ class Schwab(SessionManager):
             raise Exception("side must be either Buy or Sell")
 
         # Handling formating of limit_price to avoid error.
-        # Checking how many decimal places are in limit_price. 
+        # Checking how many decimal places are in limit_price.
         decimal_places = len(str(float(limit_price)).split('.')[1])
         limit_price_warning = None
         # Max 2 decimal places allowed for price >= $1 and 4 decimal places for price < $1.
@@ -551,14 +551,14 @@ class Schwab(SessionManager):
             Use at own risk.
             Make sure you understand what you are doing when trading options and using this function.
             Option trading requires an application and approval process at Schwab.
-            
+
             strategy (int) - Type of options strategy:
                         2 leg strategies:
                         201 - vertical call spread
                         202 - vertical put spread
                         203 - calendar call spread (level 3)
                         204 - calendar put spread (level 3)
-                        205 - diagonal call spread 
+                        205 - diagonal call spread
                         206 - diagonal put spread
                         207 - ratio call spread (level 3)
                         208 - ratio put spread (level 3)
@@ -589,7 +589,7 @@ class Schwab(SessionManager):
                         recommended!
                         201 - Net credit. To be used in conjuncture with limit price.
                         202 - Net debit. To be used in conjunture with limit price.
-            duration (int) - The duration type for the order. 
+            duration (int) - The duration type for the order.
                         48 - Day
                         49 - GTC Good till canceled
             limit_price (number) - The limit price to set with the order. Usage recommended.
@@ -918,7 +918,7 @@ class Schwab(SessionManager):
              It's not reverse engineered to the point where you can narrow it down to a range of strike prices and
              expiration dates.
              To look up an individual symbol's quote, prefer using quote_v2().
-        
+
              ticker (str) - ticker of the underlying security
              greeks (bool) - if greeks is true, you will also get the option greeks (Delta, Theta, Gamma etc... )
         """
