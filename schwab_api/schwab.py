@@ -121,13 +121,14 @@ class Schwab(SessionManager):
 
     def trade(self, ticker, side, qty, account_id, dry_run=True, reinvest=True, tax_optimized_cost_basis=True):
         """
-            ticker (Str) - The symbol you want to trade,
+            ticker (str) - The ticker symbol to trade,
             side (str) - Either 'Buy' or 'Sell',
             qty (float) - The amount of shares to buy/sell,
             account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
                          we're looking for just XXXXXXXX,
-            reinvest (boolean) - Reinvest dividends,
-            tax_optimized_cost_basis (boolean) - Use tax optimized cost-basis strategy, as opposed to FIFO.
+            dry_run (bool) - Dry run, don't actually perform trades,
+            reinvest (bool) - Reinvest dividends,
+            tax_optimized_cost_basis (bool) - Use tax optimized cost-basis strategy, as opposed to FIFO.
 
             Returns messages (list of strings), is_success (boolean)
         """
@@ -205,15 +206,70 @@ class Schwab(SessionManager):
         return messages, False
 
     def get_current_price(self, ticker: str) -> float:
+        """Get current price
+        :param ticker: str
+        """
         quotation = self.quote_v2([ticker])[0]
         return float(sub(r'[^\d.]', '', quotation['quote']['last']))
 
     def get_available_funds(self, account_id: int) -> float:
+        """Get cash funds available for purchases in the account
+        :param account_id:  int
+        """
         accounts = self.get_account_info_v2()
         return accounts[account_id]["available_cash"]
 
-    def rebalance(self, account_id: int, allocations: {}, set_aside=0.0, reinvest=True, tax_optimized_cost_basis=True,
-                  dry_run=True, sell_all_confirm=False) -> ([str], True):
+    def rebalance(self, account_id: int, allocations: {}, set_aside: float = 0.0,
+                  reinvest: bool = True, tax_optimized_cost_basis: bool = True, dry_run=True,
+                  sell_all_confirm=False) -> ([str], bool):
+        """Rebalance account portfolio
+
+        Warning - this function performs equity trades that may have tax consequences.
+
+        Perform sales and purchases to achieve a desired proportional investment in a set of equities. For example,
+        lets say it's desired to have 33% of the account in Apple, 50% in Tesla, and the rest in IBM. The allocations
+        argument can be set to show the relative desired weighting as {'AAPL': 1.0, 'TSLA': 1.5, 'IBM': 0.5}. If the
+        account currently had 25% in Apple, 60% in Tesla, and 15% in Google, then all the Google stock would be sold,
+        some Tesla would be sold, some additional Apple stock would be purchased, and IBM would be purchased.
+
+        Because of the need to purchase in whole share units, the resulting holdings are approximations of the
+        desired holdings. May specify an amount of cash to set aside in the account, in which case the desired
+        holding percentages apply to the balance after the set-aside. Once all transactions have occurred, if there is
+        enough cash remaining to purchase one or more shares of the least expensive desired stock, those will be
+        purchased as well, to minimize leftover cash.
+
+        The function returns a list of messages related to the sale and purchase transactions, and an indication of
+        its ultimate success. It may be the case that some, but not all the transactions succeed. In that case, the
+        function returns after the first unsuccessful transaction.
+
+        Parameters
+        ----------
+            account_id : int
+                The account ID to place the trades on
+            allocations : {str:float}
+                Symbols desired to have in the account, correlated to their relative weights -
+                for example: {'AAPL': 1.0, 'TSLA': 1.5, 'IBM': 0.5}
+            set_aside : float, optional
+                The amount of cash, in dollars, to set aside in the account during rebalancing, by default 0.0
+            reinvest : bool, optional
+                Reinvest dividends that occur into the equities that granted them, by default True
+            tax_optimized_cost_basis : bool, optional
+                Use tax-optimized cost-basis strategy, rather than FIFO, by default True
+            dry_run : bool, optional
+                Dry run, return potential trades and issues but don't actually perform trades, by default True
+            sell_all_confirm : bool, optional
+                Confirmation that an empty allocations argument indicates an intent to sell all holdings, by default
+                False
+
+        Returns
+        -------
+            result_summary : ([str], bool)
+                List of messages indicating the trades attempted and resulting messages returned by Schwab, followed by
+                True if all attempted trades were successful, otherwise the last attempted trade failed
+        """
+
+        if allocations is None:
+            allocations = {}
         account_info = self.get_account_info_v2()
         result_messages = []
         account = account_info[account_id]
@@ -224,10 +280,12 @@ class Schwab(SessionManager):
 
         desired_shares = {}
         cheapest = None
+        success = True
+
         if len(allocations) == 0:
             if not sell_all_confirm:
                 return ['Attempting to rebalance with no allocations. '
-                        'If that is the intent, set sell_all_confirm to True.'], True
+                        'If that is the intent, set sell_all_confirm to True.'], success
         else:
             total_allocation = 0.0
             for symbol in allocations:
@@ -289,9 +347,37 @@ class Schwab(SessionManager):
 
         return result_messages, success
 
-    def sell(self, account_id, ticker, shares, tax_optimized_cost_basis=True, dry_run=True):
+    def sell(self, account_id: int, ticker: str, shares: float, tax_optimized_cost_basis: bool = True,
+             dry_run: bool = True) -> ([str], bool):
+        """Sell shares
+
+        Warning - this function performs equity trades that may have tax consequences.
+
+        Perform sale of equity shares from a given account portfolio.
+
+        Parameters
+        ----------
+            account_id : int
+                The account ID in which to place the sale
+            ticker : str
+                The ticker symbol to sell
+            shares : float
+                Number of shares to sell
+            tax_optimized_cost_basis : bool, optional
+                Use tax-optimized cost-basis strategy, rather than FIFO, by default True
+            dry_run : bool, optional
+                Dry run, return potential sale and issues but don't actually perform sale, by default True
+
+        Returns
+        -------
+            result_summary : ([str], bool)
+                List of messages indicating the attempted sale and resulting messages returned by Schwab, followed by
+                True if the attempted sale was successful
+        """
+
         result_messages = ["--> Selling from account %s: %f shares of %s" % (account_id, shares, ticker)]
         if shares <= 0:
+            # An attempt to sell zero shares is not a failure - zero shares are successfully (not) sold.
             return result_messages + ["Attempt to sell invalid number of shares: %f" % shares], shares == 0
         messages, success = self.trade(
             ticker=ticker,
@@ -304,8 +390,37 @@ class Schwab(SessionManager):
         result_messages += messages
         return result_messages, success
 
-    def purchase(self, account_id, ticker, shares=None, set_aside=0.00, reinvest=True, tax_optimized_cost_basis=True,
-                 dry_run=True):
+    def purchase(self, account_id: int, ticker: str, shares: float = None, set_aside: float = 0.00,
+                 reinvest: bool = True, tax_optimized_cost_basis: bool = True, dry_run: bool = True) -> ([str], bool):
+        """Purchase shares
+
+        Perform purchase of equity shares within a given account portfolio. If the shares parameter is not provided,
+        purchase as many shares as possible with the available funds that haven't been set aside.
+
+        Parameters
+        ----------
+            account_id : int
+                The account ID in which to place the purchase
+            ticker : str
+                The ticker symbol to purchase
+            shares : float, optional
+                Number of shares to purchase, default None
+            set_aside : float, optional
+                The amount of cash, in dollars, to set aside in the account, by default 0.0
+            reinvest : bool, optional
+                Reinvest dividends that occur into the same equity, by default True
+            tax_optimized_cost_basis : bool, optional
+                Use tax-optimized cost-basis strategy, rather than FIFO, by default True
+            dry_run : bool, optional
+                Dry run, return potential purchase and issues but don't actually perform purchase, by default True
+
+        Returns
+        -------
+            result_summary : ([str], bool)
+                List of messages indicating the attempted purchase and resulting messages returned by Schwab, followed
+                by True if the attempted purchase was successful
+        """
+
         result_intro_message = "<-- Purchase request for account %s of %s" % (account_id, ticker)
         if shares is None:
             result_intro_message += ", as many shares as possible"
@@ -430,7 +545,7 @@ class Schwab(SessionManager):
         else:
             raise Exception("side must be either Buy or Sell")
 
-        # Handling formating of limit_price to avoid error.
+        # Handling formatting of limit_price to avoid error.
         # Checking how many decimal places are in limit_price.
         decimal_places = len(str(float(limit_price)).split('.')[1])
         limit_price_warning = None
@@ -788,7 +903,7 @@ class Schwab(SessionManager):
             return [r2.text], False
         return response, False
 
-    def quote_v2(self, tickers):
+    def quote_v2(self, tickers) -> {}:
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
