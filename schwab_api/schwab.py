@@ -427,7 +427,7 @@ class Schwab(SessionManager):
         else:
             result_intro_message += ", %d shares" % shares
         if set_aside > 0.00:
-            result_intro_message += ", with $.2f set aside" % set_aside
+            result_intro_message += ", with $%.2f set aside" % set_aside
         result_messages = [result_intro_message]
         funds = self.get_available_funds(account_id) - set_aside
         result_messages.append("Funds available in account %s: $%.2f" % (account_id, funds))
