@@ -19,8 +19,11 @@ class SessionManager:
     def __init__(self, debug = False) -> None:
         """
         This class is using asynchronous playwright mode.
+
+        :type debug: boolean
+        :param debug: Enable debug logging
         """
-        self.headers = None
+        self.headers = {}
         self.session = requests.Session()
         self.playwright = None
         self.browser = None
@@ -44,8 +47,9 @@ class SessionManager:
     def get_session(self):
         return self.session
 
-    def login(self, username, password, totp_secret):
-        """ This function will log the user into schwab using asynchronous Playwright and saving
+    def login(self, username, password, totp_secret, lazy=False):
+        """
+        Logs the user into the Schwab API using asynchronous Playwright, saving
         the authentication cookies in the session header.
 
         :type username: str
@@ -57,48 +61,53 @@ class SessionManager:
         :type totp_secret: str
         :param totp_secret: The TOTP secret used to complete multi-factor authentication
 
+        :type lazy: boolean
+        :param lazy: Store credentials but don't login until necessary
+
         :rtype: boolean
         :returns: True if login was successful and no further action is needed or False
             if login requires additional steps (i.e. SMS - no longer supported)
         """
         # update credentials
-        self.username = username
-        self.password = password
-        self.totp_secret = totp_secret
+        self.username = username or ""
+        self.password = password or ""
+        self.totp_secret = totp_secret or ""
 
         # calculate hashes
-        username_hash = hashlib.md5(username.encode('utf-8')).hexdigest()
-        password_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
-        totp_secret_hash = hashlib.md5(totp_secret.encode('utf-8')).hexdigest()
+        username_hash = hashlib.md5(self.username.encode('utf-8')).hexdigest()
+        password_hash = hashlib.md5(self.password.encode('utf-8')).hexdigest()
+        totp_secret_hash = hashlib.md5(self.totp_secret.encode('utf-8')).hexdigest()
 
         # attempt to load cached session
         if self._load_session_cache():
             # check hashed credentials
             if self.username_hash == username_hash and self.password_hash == password_hash and self.totp_secret_hash == totp_secret_hash:
                 if self.debug:
-                    print('hashed credentials okay')
+                    print('DEBUG: hashed credentials okay')
                 try:
                     if self.update_token():
                         return True
                 except:
                     if self.debug:
-                        print('update token failed, falling back to login')
+                        print('DEBUG: update token failed, falling back to login')
 
         # update hashed credentials
         self.username_hash = username_hash
         self.password_hash = password_hash
         self.totp_secret_hash = totp_secret_hash
 
-        # attempt to login
-        result = asyncio.run(self._async_login())
-        return result
+        if lazy:
+            return True
+        else:
+            # attempt to login
+            return asyncio.run(self._async_login())
 
     def update_token(self, token_type='api', login=True):
         r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
         if not r.ok:
             if login:
                 if self.debug:
-                    print("session invalid; logging in again")
+                    print("DEBUG: session invalid; logging in again")
                 result = asyncio.run(self._async_login())
                 return result
             else:
@@ -110,8 +119,8 @@ class SessionManager:
         return True
 
     async def _async_login(self):
-        """ This function runs in async mode to perform login.
-        Use with login function. See login function for details.
+        """
+        Helper function to perform asynchronous login using Playwright
         """
         self.playwright = await async_playwright().start()
         if self.browserType == "firefox":
