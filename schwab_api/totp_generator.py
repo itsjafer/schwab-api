@@ -1,6 +1,7 @@
 import base64
 from vipaccess import provision as vp
 
+
 def generate_totp():
     """ Generates an authentication pair of Symantec VIP ID, and TOTP Secret
 
