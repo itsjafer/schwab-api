@@ -220,10 +220,11 @@ class Schwab(SessionManager):
         """Get current prices
         :param symbols: list[str]
         """
-        quotations = self.quote_v2(symbols)
+        quotations, success = self.quote_v2(symbols)
         prices = {}
-        for quotation in quotations:
-            prices[quotation['symbol']] = float(sub(r'[^\d.]', '', quotation['quote']['last']))
+        if success:
+            for quotation in quotations:
+                prices[quotation['symbol']] = float(sub(r'[^\d.]', '', quotation['quote']['last']))
         return prices
 
     def get_current_price(self, ticker: str) -> float:
@@ -1032,6 +1033,9 @@ class Schwab(SessionManager):
         """
         quote_v2 takes a list of Tickers, and returns Quote information through the Schwab API.
         """
+        if len(tickers) == 0:
+            return [], True
+
         data = {
             "Symbols": tickers,
             "IsIra": False,
@@ -1047,7 +1051,7 @@ class Schwab(SessionManager):
             return [r.text], False
 
         response = json.loads(r.text)
-        return response["quotes"]
+        return response["quotes"], True
 
     def orders_v2(self, account_id=None):
         """
