@@ -1,12 +1,13 @@
 # Schwab API
 
-**This is not an official API or even a stable recreation of a Charles Schwab API. Functionality may change with any updates made by Schwab. As of December 2023, this API continues to work as expected.**
+**This is not an official API wrapper. Functionality may change with any updates made by Schwab. As of June 2024, this API continues to work as expected.**
 
 This package enables buying and selling securities programmatically on Charles Schwab. Currently, we use a headless browser to automate logging in in order to get authorization cookies. All other functionality is done through web requests made to Schwab's own API.
 
 ## Features
 
 * Buying and Selling tickers
+* Trading options
 * Get quotes for multiple tickers
 * Get order information
 * Get transaction history
@@ -15,18 +16,14 @@ This package enables buying and selling securities programmatically on Charles S
 * Limit / Stop orders are possible using trade_v2 parameters
 * Multiple individual account support
 * MFA and TOTP authentication
+* Session caching
 * Async compatibility
-* Web Request implementation (with the exception of authentication)
 
 ## Live Demo
 
 I am currently using this package to place trades on Schwab using my website [here](https://itsjafer.com/#/reversesplit).
 
 ![Screenshot](screenshot.png)
-
-## Contribution
-
-I would absolutely love contributions; as someone new to open source, I'd appreciate help in setting up a reliable system for PRs as well :)
 
 ## Getting Started
 
