@@ -8,18 +8,21 @@ from .account_information import Position, Account
 from .authentication import SessionManager
 
 class Schwab(SessionManager):
-    def __init__(self, **kwargs):
+    def __init__(self, session_cache=None, **kwargs):
         """
-            The Schwab class. Used to interact with schwab.
+        The Schwab class. Used to interact with the Schwab API.
 
+        :type session_cache: str
+        :param session_cache: Path to an optional session file, used to save/restore credentials
         """
         self.headless = kwargs.get("headless", True)
         self.browserType = kwargs.get("browserType", "firefox")
+        self.session_cache = session_cache
         super(Schwab, self).__init__()
 
     def get_account_info(self):
         """
-            Returns a dictionary of Account objects where the key is the account number
+        Returns a dictionary of Account objects where the key is the account number
         """
 
         account_info = dict()
@@ -789,10 +792,3 @@ class Schwab(SessionManager):
 
         response = json.loads(r.text)
         return response
-
-    def update_token(self, token_type='api'):
-        r = self.session.get(f"https://client.schwab.com/api/auth/authorize/scope/{token_type}")
-        if not r.ok:
-            raise ValueError(f"Error updating Bearer token: {r.reason}")
-        token = json.loads(r.text)['token']
-        self.headers['authorization'] = f"Bearer {token}"
