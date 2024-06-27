@@ -585,6 +585,7 @@ class Schwab(SessionManager):
             # The fields below are experimental and should only be changed if you know what
             # you're doing.
             instrument_type=46,
+            order_management_system=2, # You may need to change this based on the value returned from calling orders_v2
             ):
         """
         Cancels an open order (specified by order ID) using the v2 API
@@ -598,7 +599,7 @@ class Schwab(SessionManager):
         """
         data = {
             "TypeOfOrder": 0,
-            "OrderManagementSystem": 2,
+            "OrderManagementSystem": order_management_system,
             "Orders": [{
                 "OrderId": order_id,
                 "IsLiveOrder": True,
