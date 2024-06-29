@@ -708,6 +708,19 @@ class Schwab(SessionManager):
                             position["symbolDetail"]["schwabSecurityId"]
                         )._as_dict()
                     )
+                    if "childOptionHoldings" in position:
+                        for child_position in position["childOptionHoldings"]:
+                            positions.append(
+                                Position(
+                                    child_position["symbolDetail"]["symbol"],
+                                    child_position["symbolDetail"]["description"],
+                                    float(child_position["quantity"]),
+                                    0 if "costDetail" not in child_position else float(child_position["costDetail"]["costBasisDetail"]["costBasis"]),
+                                    0 if "priceDetail" not in child_position else float(child_position["priceDetail"]["marketValue"]),
+                                    child_position["symbolDetail"]["schwabSecurityId"]
+                                )._as_dict()
+                            )
+
             if not valid_parse:
                 continue
             account_info[int(account["accountId"])] = Account(
