@@ -140,6 +140,7 @@ class SessionManager:
         config = StealthConfig()
         config.navigator_languages = False
         config.navigator_user_agent = False
+        config.navigator_vendor = False
         await stealth_async(self.page, config)
 
         await self.page.goto("https://www.schwab.com/")
