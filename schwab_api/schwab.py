@@ -449,7 +449,7 @@ class Schwab(SessionManager):
         funds = self.get_available_funds(account_id) - set_aside
         result_messages.append("Funds available in account %s: $%.2f" % (account_id, funds))
         current_price = self.get_current_price(ticker)
-        potential_shares = funds // current_price
+        potential_shares = max(funds // current_price, 0)
         if shares is None or potential_shares < shares:
             shares = potential_shares
         if shares <= 0:
