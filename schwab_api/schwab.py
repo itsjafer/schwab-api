@@ -83,10 +83,12 @@ class Schwab(SessionManager):
 
         return account_info
 
-    def get_transaction_history_v2(self, account_id):
+    def get_transaction_history_v2(self, account_id, from_date=None, to_date=None):
         """
             account_id (int) - The account ID to place the trade on. If the ID is XXXX-XXXX,
                         we're looking for just XXXXXXXX.
+            from_date (datetime.date) - the date the transaction history starts from. Leave it empty to search for all.
+            to_date (datetime.date) - the date the transaction history ends with. Leave it empty to search for all.
 
             Returns a dictionary of transaction history entries for the provided account ID.
         """
@@ -116,6 +118,11 @@ class Schwab(SessionManager):
             "sortColumn": "Date",
             "sortDirection": "Descending"
         }
+        if from_date and to_date:
+            data["timeFrame"] = "SpecifyDateRange"
+            data["fromDate"] = from_date.strftime('%Y-%m-%d')
+            data["toDate"] = to_date.strftime('%Y-%m-%d')
+
         r = requests.post(urls.transaction_history_v2(), json=data, headers=self.headers)
         if r.status_code != 200:
             return [r.text], False
