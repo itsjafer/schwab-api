@@ -686,6 +686,9 @@ class Schwab(SessionManager):
     def get_account_info_v2(self):
         account_info = dict()
         self.update_token(token_type='api')
+        # somewhere around 2025-08-25, this change became necessary
+        if 'schwab-client-account' in self.headers:
+            self.headers['Schwab-Client-Ids'] = self.headers['schwab-client-account']
         r = requests.get(urls.positions_v2(), headers=self.headers)
         response = json.loads(r.text)
         for account in response['accounts']:
@@ -694,18 +697,18 @@ class Schwab(SessionManager):
             for security_group in account["groupedPositions"]:
                 if security_group["groupName"] == "Cash":
                     continue
-                for position in security_group["positions"]:
-                    if "symbol" not in position["symbolDetail"]:
+                for position in security_group["holdingsRows"]:
+                    if "symbol" not in position:
                         valid_parse = False
                         break
                     positions.append(
                         Position(
-                            position["symbolDetail"]["symbol"],
-                            position["symbolDetail"]["description"],
-                            float(position["quantity"]),
-                            0 if "costDetail" not in position else float(position["costDetail"]["costBasisDetail"]["costBasis"]),
-                            0 if "priceDetail" not in position else float(position["priceDetail"]["marketValue"]),
-                            position["symbolDetail"]["schwabSecurityId"]
+                            position["symbol"]["symbol"],
+                            position["description"],
+                            float(position["qty"]["qty"]),
+                            0 if "costBasis" not in position else float(position["costBasis"]["cstBasis"]),
+                            0 if "marketValue" not in position else float(position["marketValue"]["val"]),
+                            position["symbol"]["ssId"]
                         )._as_dict()
                     )
             if not valid_parse:
