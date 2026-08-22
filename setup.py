@@ -18,7 +18,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     download_url="https://github.com/itsjafer/schwab-api/tarball/master",
     keywords=["schwab", "python3", "api", "unofficial", "schwab-api", "schwab charles api"],
-    install_requires=["playwright", "playwright-stealth", "pyotp", "python-vipaccess"],
+    install_requires=["playwright", "playwright-stealth==1.0.6", "pyotp", "python-vipaccess", "setuptools<82.0.0"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

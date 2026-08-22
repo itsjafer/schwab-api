@@ -16,7 +16,7 @@ def account_info_v2():
     return "https://ausgateway.schwab.com/api/is.TradeOrderManagementWeb/v1/TradeOrderManagementWebPort/customer/accounts"
 
 def positions_v2():
-    return "https://ausgateway.schwab.com/api/is.Holdings/V1/Holdings/Holdings?=&includeCostBasis=true&includeRatings=true&includeUnderlyingOption=true"
+    return "https://ausgateway.schwab.com/api/is.Holdings/V1/Holdings/HoldingV2"
 
 def ticker_quotes_v2():
     return "https://ausgateway.schwab.com/api/is.TradeOrderManagementWeb/v1/TradeOrderManagementWebPort/market/quotes/list"
@@ -36,7 +36,11 @@ def lot_details_v2():
 def option_chains_v2():
     return "https://ausgateway.schwab.com/api/is.CSOptionChainsWeb/v1/OptionChainsPort/OptionChains/chains"
 
+def balances_positions_v2():
+    return "https://ausgateway.schwab.com/api/is.TradeOrderManagementWeb/v1/TradeOrderManagementWebPort/account/balancespositions"   # ?account=BROKERAGE
+
 # Old API
+# Now only returns a single account
 def positions_data():
     return "https://client.schwab.com/api/PositionV2/PositionsDataV2"
 
